@@ -57,6 +57,14 @@ fn route(app: &mut WordApp, name: &str, params: &Value, parent: Option<DialogId>
             app.restrict.open = true;
             None
         }
+        // So is Remove Watermarks; `path` opens it on that PDF, scanned.
+        "removeWatermarks" => {
+            app.clean.open = true;
+            if let Some(path) = params.get("path").and_then(Value::as_str) {
+                crate::clean_pane::scan(app, path.to_string());
+            }
+            None
+        }
         "fontDownload" => crate::font_download::open(app, name, params, parent),
         "font" => font::open(app, name, params, parent),
         // The font colour's More Colors… (the colour picker keeps its own answer route).
