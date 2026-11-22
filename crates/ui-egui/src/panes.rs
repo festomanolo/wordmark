@@ -51,6 +51,7 @@ pub enum Pane {
     RestrictEditing,
     Proofing,
     Comments,
+    RemoveWatermarks,
 }
 
 impl Pane {
@@ -67,6 +68,7 @@ impl Pane {
             Self::RestrictEditing => "Restrict Editing",
             Self::Proofing => "Proofing",
             Self::Comments => "Comments",
+            Self::RemoveWatermarks => "Remove Watermarks",
         }
     }
 
@@ -85,6 +87,7 @@ impl Pane {
             Self::RestrictEditing => (PaneEdge::End, 270.0),
             Self::Proofing => (PaneEdge::End, 400.0),
             Self::Comments => (PaneEdge::End, 290.0),
+            Self::RemoveWatermarks => (PaneEdge::End, 340.0),
         }
     }
 
@@ -118,10 +121,11 @@ impl Pane {
             Self::RestrictEditing => "restrictEditing",
             Self::Proofing => "proofing",
             Self::Comments => "comments",
+            Self::RemoveWatermarks => "removeWatermarks",
         }
     }
 
-    const ALL: [Self; 11] = [
+    const ALL: [Self; 12] = [
         Self::SmartArtText,
         Self::Navigation,
         Self::Clipboard,
@@ -133,6 +137,7 @@ impl Pane {
         Self::RestrictEditing,
         Self::Proofing,
         Self::Comments,
+        Self::RemoveWatermarks,
     ];
 
     fn from_key(key: &str) -> Option<Self> {
@@ -151,7 +156,7 @@ impl Pane {
             Self::AltText => Some("view.altTextPane"),
             Self::FormatShape => Some("view.formatShapePane"),
             Self::Comments => Some("view.commentsPane"),
-            Self::RestrictEditing | Self::Proofing => None,
+            Self::RestrictEditing | Self::Proofing | Self::RemoveWatermarks => None,
         }
     }
 }
@@ -170,6 +175,7 @@ fn pane_body(app: &mut WordApp, ui: &mut Ui, pane: Pane) {
         Pane::RestrictEditing => crate::restrict_pane::show(app, ui),
         Pane::Proofing => crate::proofing_pane::show(app, ui),
         Pane::Comments => comments(app, ui),
+        Pane::RemoveWatermarks => crate::clean_pane::show(app, ui),
     }
 }
 
