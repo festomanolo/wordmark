@@ -211,6 +211,7 @@ fn services(spool: Spool, intake: FileIntake) -> Services {
     Services {
         print: Some(spool),
         templates_dir: wordcraft_control_key::settings_dir().map(|d| d.join("Templates")),
+        watermark_model: wordcraft_control_key::settings_dir().map(|d| d.join("watermark-model.json")),
         make_default_app,
         intake: Some(intake),
         ..Default::default()

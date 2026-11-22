@@ -1942,6 +1942,8 @@ name = "craft-pdf"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=243d68e12d05e89122db6d154924bf1992e10d38#243d68e12d05e89122db6d154924bf1992e10d38"
 dependencies = [
+ "hayro-interpret",
+ "hayro-syntax",
  "krilla",
  "serde",
  "thiserror 2.0.21",
@@ -9089,13 +9091,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "wordcraft-clean"
+version = "0.18.1"
+dependencies = [
+ "craft-pdf",
+ "kurbo",
+ "log",
+ "rayon",
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "wordcraft-doc",
+]
+
+[[package]]
 name = "wordcraft-cli"
 version = "0.18.1"
 dependencies = [
  "craft-zip",
  "image",
+ "serde",
  "serde_json",
  "sys-locale",
+ "wordcraft-clean",
  "wordcraft-doc",
  "wordcraft-engine",
  "wordcraft-fonts",
@@ -9182,6 +9201,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
+ "wordcraft-clean",
  "wordcraft-doc",
  "wordcraft-docbin",
  "wordcraft-docx",

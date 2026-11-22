@@ -26,6 +26,10 @@ pub struct Services {
     /// used while File › Options names none. File › New lists personal templates from it and Save
     /// as Word Template starts in it. `None` (web) hides personal templates.
     pub templates_dir: Option<std::path::PathBuf>,
+    /// Desktop: the watermark detector's learned model (`watermark-model.json` in the settings
+    /// folder), which the Remove Watermarks pane reads and teaches. `None` (web): picks apply to
+    /// the one PDF and are not remembered.
+    pub watermark_model: Option<std::path::PathBuf>,
     /// Files the system asked the app to open, and files dropped on a window, read once per frame.
     pub intake: Option<craft::platform::open::FileIntake>,
 }

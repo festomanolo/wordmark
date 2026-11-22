@@ -1,3 +1,5 @@
+#[cfg(not(target_arch = "wasm32"))]
+mod clean_commands;
 mod comment_ids;
 mod date_fields;
 mod macro_packages;

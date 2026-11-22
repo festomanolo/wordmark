@@ -5,6 +5,7 @@ pub mod canvas;
 pub mod caret;
 pub mod chart;
 pub mod citations;
+pub mod clean;
 pub mod column;
 pub mod connectors;
 pub mod controls;
@@ -108,6 +109,7 @@ pub fn registry() -> Registry {
     v.extend(protect::specs());
     v.extend(speech::specs());
     v.extend(controls::specs());
+    v.extend(clean::specs());
     Registry::new(v)
 }
 

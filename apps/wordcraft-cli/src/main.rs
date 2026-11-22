@@ -2,6 +2,7 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 mod automation_args;
+mod clean_cmd;
 mod script;
 
 use std::ffi::{OsStr, OsString};
@@ -49,6 +50,32 @@ USAGE:
                                               make it active; later commands and the saves work on
                                               the active one; view.switchWindows lists the open
                                               documents and with {\"id\": N} makes one active
+  wordcraft-cli clean <file|folder>… --out DIR [--format docx|odt|rtf|md|html|txt|pdf|json]
+                    [--model FILE] [--urls remove|unlink|keep] [--drop-flagged] [--no-page-breaks]
+                    [--recursive] [--jobs N] [--report FILE]
+                                              remove watermarks and web addresses from a batch of PDFs
+                                              and documents and save each as an editable file (docx by
+                                              default). PDFs are turned into paragraphs and headings;
+                                              a span the detector is sure is a watermark (turned,
+                                              see-through, pale, repeated on every page, or like one a
+                                              person marked) is removed, one it is unsure of is kept
+                                              and flagged (--drop-flagged removes those too). Word,
+                                              ODT and RTF files lose their watermark, their links and
+                                              learned watermark text. Files go through three stages
+                                              at once (read, clean, write), --jobs workers each (default:
+                                              one per CPU); the report (default DIR/clean-report.json)
+                                              lists what was removed and flagged per file, and scanned
+                                              pages with no text layer, which are not converted (run
+                                              OCR on them first). --model is the learned detector
+                                              (default ./watermark-model.json; a new one if missing)
+  wordcraft-cli clean-learn <file> [--model FILE] [--mark TEXT …] [--not TEXT …] [--limit N]
+                                              teach the detector: lists the file's most watermark-like
+                                              texts and asks which are real watermarks (and which are
+                                              not), or takes them as --mark / --not; the model learns
+                                              how they look and recognises the same marks in other files
+  wordcraft-cli clean-review <report.json> [--model FILE] [--no-rerun]
+                                              decide each text clean flagged (y watermark, n content),
+                                              learn from the answers and clean those files again
   wordcraft-cli commands [--json]             list every command
   wordcraft-cli parity [--markdown]           feature-catalog parity
   wordcraft-cli mcp --automation-read-root DIR --automation-write-root DIR [--author NAME]
@@ -81,7 +108,8 @@ same output on every machine.
 ";
 
 /// The subcommands, in `USAGE` order; `--help` or `-h` after any of them prints `USAGE` (#968).
-const SUBCOMMANDS: &[&str] = &["convert", "info", "text", "inspect", "render", "run", "commands", "parity", "mcp", "zotero"];
+const SUBCOMMANDS: &[&str] =
+    &["convert", "info", "text", "inspect", "render", "run", "clean", "clean-learn", "clean-review", "commands", "parity", "mcp", "zotero"];
 
 fn wants_help(cmd: &str, rest: &[String]) -> bool {
     SUBCOMMANDS.contains(&cmd) && rest.iter().any(|a| a == "--help" || a == "-h")
@@ -130,6 +158,9 @@ fn text_args<S: AsRef<OsStr>>(raw: &[S]) -> Result<(Vec<String>, Option<PathBuf>
         "convert" => CONVERT_OPTIONS,
         "render" => RENDER_OPTIONS,
         "zotero" => ZOTERO_OPTIONS,
+        "clean" => clean_cmd::CLEAN_OPTIONS,
+        "clean-learn" => clean_cmd::LEARN_OPTIONS,
+        "clean-review" => clean_cmd::REVIEW_OPTIONS,
         _ => PASSWORD_OPTIONS,
     };
     let file_at = match OPENS_FILE.iter().find(|(c, _)| *c == cmd) {
@@ -571,6 +602,9 @@ fn run<S: AsRef<OsStr>>(args: &[S]) -> Result<(), Failure> {
     }
     match cmd {
         "convert" => run_convert(&rest, open),
+        "clean" => clean_cmd::run_clean(&rest),
+        "clean-learn" => clean_cmd::run_learn(&rest),
+        "clean-review" => clean_cmd::run_review(&rest),
         "info" => {
             validate_options("info", &rest, PASSWORD_OPTIONS)?;
             let paths = positionals(&rest, PASSWORD_OPTIONS);
