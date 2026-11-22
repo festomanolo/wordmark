@@ -70,6 +70,8 @@ pub(crate) enum AfterPick {
     Recipients,
     /// Add every picked font file (#582, #1789).
     Font,
+    /// Scan the picked PDF in the Remove Watermarks pane.
+    WatermarkedPdf,
     /// Import the picked Word bibliography file (`b:Sources`: Word's `Sources.xml`) into the
     /// document through Manage Sources (#2640).
     #[cfg(not(target_arch = "wasm32"))]
@@ -276,6 +278,11 @@ impl WordApp {
             AfterPick::Font => {
                 let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
                 self.add_fonts(vec![(path.clone(), json!({"path": path}))])
+            }
+            AfterPick::WatermarkedPdf => {
+                let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
+                crate::clean_pane::scan(self, path);
+                Ok(json!({"scanned": true}))
             }
             #[cfg(not(target_arch = "wasm32"))]
             AfterPick::Sources => {
@@ -511,6 +518,12 @@ impl WordApp {
     pub(crate) fn pick_picture(&mut self) {
         let req = with_open_filters(PickRequest::open("picture"), "picture");
         let _ = self.ask_file(req, AfterPick::Picture);
+    }
+
+    /// Pick a PDF for the Remove Watermarks pane to scan.
+    pub(crate) fn pick_watermarked_pdf(&mut self) {
+        let req = PickRequest::open("pdf").filter(tl!("PDF"), &["pdf"]);
+        let _ = self.ask_file(req, AfterPick::WatermarkedPdf);
     }
 
     /// Pick one or more font files to add (Add Font…).
