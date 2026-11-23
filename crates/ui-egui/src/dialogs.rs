@@ -69,6 +69,8 @@ fn route(app: &mut WordApp, name: &str, params: &Value, parent: Option<DialogId>
                     app,
                     folder,
                     params.get("out").and_then(Value::as_str),
+                    params.get("start").and_then(Value::as_bool) == Some(true),
+                );
             }
             None
         }
