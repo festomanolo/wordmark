@@ -646,13 +646,9 @@ struct Groups {
     repeat_pages: Vec<usize>,
 }
 
-    // Spots and keys of every object, for repeats and groups.
-    let spots: Vec<Vec<[f64; 4]>> =
-        found.iter().enumerate().map(|(p, fs)| fs.iter().map(|f| spot(&f.obj, sizes.get(p).copied().unwrap_or([1.0, 1.0]))).collect()).collect();
-    let text_key = |f: &Found| (f.obj.kind == Kind::Text && !f.obj.text.trim().is_empty()).then(|| normalize(&f.obj.text));
-
-    // Group: same kind and (same text, same link host, same picture data, or same spot) on
-    // another page. Union-find over (page, index).
+/// Group: same kind and (same text, same link host, same picture data, or same spot) on another
+/// page. Union-find over (page, index).
+fn group(found: &[Vec<Found>], spots: &[Vec<[f64; 4]>]) -> Groups {
     let flat: Vec<(usize, usize)> = found.iter().enumerate().flat_map(|(p, fs)| (0..fs.len()).map(move |i| (p, i))).collect();
     let at: HashMap<(usize, usize), usize> = flat.iter().enumerate().map(|(n, k)| (*k, n)).collect();
     let mut parent: Vec<usize> = (0..flat.len()).collect();
