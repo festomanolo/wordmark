@@ -197,14 +197,15 @@ fn base_params(app: &WordApp, st: &CleanPane) -> Value {
     p
 }
 
-/// The ids of the ticked groups, and of the unticked ones the model would remove (the person
-/// overruled it).
+/// The ids of the ticked groups, and of the unticked ones the model would remove or was unsure
+/// of (the person overruled it, or looked and left it), which are learned as content so the
+/// next file from the same source doesn't ask again.
 fn picked_ids(st: &CleanPane) -> (Vec<String>, Vec<String>) {
     let (mut remove, mut keep) = (Vec::new(), Vec::new());
     for (g, on) in st.groups.iter().zip(&st.picked) {
         if *on {
             remove.extend(g.ids.iter().cloned());
-        } else if g.decision == "remove" {
+        } else if g.decision == "remove" || g.decision == "review" {
             keep.extend(g.ids.iter().cloned());
         }
     }
