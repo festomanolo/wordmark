@@ -160,7 +160,7 @@ fn groups(objects: &[Value]) -> Vec<Group> {
                 score,
                 decision: decision.to_string(),
             });
-                });
+            out.len() - 1
                 out.last_mut().expect("just pushed")
             }
         };
