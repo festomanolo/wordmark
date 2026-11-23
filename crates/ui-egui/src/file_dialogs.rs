@@ -559,6 +559,13 @@ impl WordApp {
         let _ = self.ask_file(req, AfterPick::CleanPdf);
     }
 
+    /// Pick the folder of PDFs to clean (`out`: the folder the clean copies go to).
+    pub(crate) fn pick_clean_folder(&mut self, out: bool) {
+        let title = if out { tl!("Folder for the clean copies") } else { tl!("Folder of PDFs to clean") };
+        let req = PickRequest::folder("clean-folder").title(title);
+        let _ = self.ask_file(req, AfterPick::CleanFolder { out });
+    }
+
     /// Pick one or more font files to add (Add Font…).
     pub(crate) fn pick_font(&mut self) {
         let req = with_open_filters(PickRequest::open_many("font"), "font");
