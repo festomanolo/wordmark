@@ -1,6 +1,3 @@
-            o.group,
-            o.bbox.map(|v| v.round()),
-            o.pixels,
             o.text,
             o.keys,
             o.reasons
