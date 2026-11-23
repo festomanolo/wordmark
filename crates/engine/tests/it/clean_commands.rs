@@ -160,8 +160,7 @@ fn each_pdf_in_a_folder_tree_gets_its_clean_copy_beside_it_and_a_second_run_leav
 
     let r = s.run("clean.folder", &json!({"dir": dir_s})).unwrap();
     assert_eq!((r["pdfs"].as_u64(), r["failed"].as_u64()), (Some(2), Some(0)), "{r:#}");
-    assert_ne!(out, dir, "the copies don't overwrite the originals");
-    for written in [out.join("a.pdf"), out.join("term 2").join("b.PDF")] {
+    for written in [dir.join("a-clean.pdf"), dir.join("term 2").join("b-clean.PDF")] {
         let scan = s.run("clean.scan", &json!({"path": written.to_string_lossy()})).unwrap();
         assert!(object_ids(&scan, "DRAFT COPY").is_empty(), "{} still has the stamp", written.display());
         assert_eq!(object_ids(&scan, "Page ").len(), 3, "the body text stays");
