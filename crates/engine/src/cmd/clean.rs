@@ -55,7 +55,7 @@ pub fn load_model(path: Option<&str>) -> Result<Model, String> {
     match path.filter(|m| !m.is_empty()) {
         // A model file not written yet is a new model.
         Some(path) if !std::path::Path::new(path).exists() => {
-            crate::file_access::check_read(path).map_err(CmdError::Failed)?;
+            crate::file_access::check_read(path)?;
             Ok(Model::default())
         }
         Some(path) => {
