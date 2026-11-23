@@ -2,8 +2,9 @@
 //! (a logo pasted over a scan, a scanner app's footer, link areas, stamps), tick what to remove,
 //! and save the PDF without it: everything else on each page stays as it was. What is ticked
 //! teaches the model, so the next PDF from the same source is marked without asking. The PDF can
-//! also be opened rebuilt as an editable document, and the open document cleaned. Every action
-//! runs a `clean.*` command ([`wordcraft_engine::cmd::clean`]).
+//! also be opened rebuilt as an editable document, and the open document cleaned. A whole folder
+//! of PDFs can be cleaned too ([`crate::clean_batch`]). Every action runs a `clean.*` command
+//! ([`wordcraft_engine::cmd::clean`]) or the work behind one.
 
 use craft::behavior::{ColumnKey, ColumnWidth, EditEvent, Input, Metrics, Sense, keyed};
 use craft::theme::variant::Tone;
@@ -92,6 +93,13 @@ pub(crate) struct CleanPane {
     /// The last result, and whether it was a failure.
     pub message: String,
     pub failed: bool,
+    /// Cleaning a whole folder.
+    pub batch: crate::clean_batch::Batch,
+    /// The folder copy this PDF's clean copy goes to, when it was opened from a folder run to
+    /// be checked.
+    pub save_target: Option<String>,
+    /// What Clean This Document did, shown under its button.
+    pub doc_message: String,
 }
 
 impl CleanPane {
@@ -208,6 +216,7 @@ pub(crate) fn scan(app: &mut WordApp, path: String) {
     let mut st = std::mem::take(&mut app.clean);
     st.open = true;
     st.path = path;
+    st.save_target = None;
     st.groups.clear();
     st.picked.clear();
     st.candidates.clear();
@@ -260,6 +269,7 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             Text::new(crate::i18n::fmt(tl!("{name}, {pages} pages"), &[("name", &file_name(&st.path)), ("pages", &st.pages.to_string())])).show(ui);
         }
     });
+    batch_section(app, ui, st);
     if st.path.is_empty() || st.page_sizes.is_empty() {
         return;
     }
@@ -286,6 +296,18 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     Section::fixed(tl!("4. Save")).show(ui, |ui, _| {
         Text::new(tl!("A new PDF without the ticked items. The rest of each page stays exactly as it was.")).show(ui);
         let learnable = model_path(app).is_some();
+        if let Some(target) = st.save_target.clone() {
+            Text::new(crate::i18n::fmt(
+                tl!("Opened from the folder run: saving writes its clean copy, {name}, again."),
+                &[("name", &file_name(&target))],
+            ))
+            .show(ui);
+            if Button::new(tl!("Save to Clean Folder")).show(ui).clicked() {
+                app.clean = std::mem::take(st);
+                save_to(app, target);
+                *st = std::mem::take(&mut app.clean);
+            }
+        }
         Row::new().show(ui, |ui, _| {
             if Button::new(tl!("Save Clean PDF…")).show(ui).clicked() {
                 app.clean = std::mem::take(st);
@@ -626,11 +648,43 @@ pub(crate) fn save_to(app: &mut WordApp, out: String) {
                 );
                 app.status(msg.clone());
                 st.say(msg, false);
+                if st.save_target.as_deref() == Some(out.as_str()) && !st.batch.checked.contains(&st.path) {
+                    st.batch.checked.push(st.path.clone());
+                }
             }
             Err(e) => st.say(e, true),
         }
     }
     app.clean = st;
+}
+
+/// The folder section, and what its buttons ask for.
+fn batch_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
+    use crate::clean_batch::Action;
+    match crate::clean_batch::section(ui, &mut st.batch) {
+        Action::None => {}
+        Action::ChooseFolder => {
+            app.clean = std::mem::take(st);
+            app.pick_clean_folder(false);
+            *st = std::mem::take(&mut app.clean);
+        }
+        Action::ChooseOut => {
+            app.clean = std::mem::take(st);
+            app.pick_clean_folder(true);
+            *st = std::mem::take(&mut app.clean);
+        }
+        Action::Start => {
+            // Saved picks are what the run knows: a model not written yet is the starting one.
+            let model = model_path(app).filter(|m| std::path::Path::new(m).exists());
+            crate::clean_batch::start(ui.ctx(), &mut st.batch, model);
+        }
+        Action::Check { input, output } => {
+            app.clean = std::mem::take(st);
+            scan(app, input);
+            *st = std::mem::take(&mut app.clean);
+            st.save_target = Some(output);
+        }
+    }
 }
 
 /// Keep the picks (where a model is kept), then open the PDF rebuilt without the watermarks.
@@ -675,26 +729,38 @@ fn open_cleaned(app: &mut WordApp, st: &mut CleanPane) {
 }
 
 fn document_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
-    Section::fixed(tl!("This document")).show(ui, |ui, _| {
-        Text::new(tl!("Remove its watermark, the watermark texts the detector has learned, and its links and web addresses.")).show(ui);
-        if Button::new(tl!("Clean This Document")).show(ui).clicked() {
+    let name = app.document_title();
+    Section::fixed(tl!("The document in the editor")).show(ui, |ui, _| {
+        Text::new(crate::i18n::fmt(
+            tl!("Cleans {name}, the document open in the editor, not a PDF: its watermark, the watermark texts the detector has learned, and its links and web addresses. Undo puts them back."),
+            &[("name", &name)],
+        ))
+        .show(ui);
+        if Button::new(crate::i18n::fmt(tl!("Clean {name}"), &[("name", &name)])).show(ui).clicked() {
             let mut p = json!({"urls": st.urls()});
             if let Some(m) = model_path(app).filter(|m| std::path::Path::new(m).exists()) {
                 p["model"] = json!(m);
             }
-            match app.run("clean.document", p) {
+            st.doc_message = match app.run("clean.document", p) {
                 Ok(r) => {
                     let n = r["learnedTextRemoved"].as_u64().unwrap_or(0) + u64::from(r["watermarkRemoved"].as_bool().unwrap_or(false));
                     let links = r["linksUnlinked"].as_u64().unwrap_or(0) + r["urlsRemoved"].as_u64().unwrap_or(0);
-                    let msg = crate::i18n::fmt(
-                        tl!("Watermarks removed: {n}. Links and web addresses removed: {links}."),
-                        &[("n", &n.to_string()), ("links", &links.to_string())],
-                    );
+                    let msg = if n + links == 0 {
+                        crate::i18n::fmt(tl!("Nothing to clean in {name}: no watermark, learned watermark text, links or web addresses."), &[("name", &name)])
+                    } else {
+                        crate::i18n::fmt(
+                            tl!("Watermarks removed: {n}. Links and web addresses removed: {links}."),
+                            &[("n", &n.to_string()), ("links", &links.to_string())],
+                        )
+                    };
                     app.status(msg.clone());
-                    st.say(msg, false);
+                    msg
                 }
-                Err(e) => st.say(e, true),
-            }
+                Err(e) => e,
+            };
+        }
+        if !st.doc_message.is_empty() {
+            Text::new(st.doc_message.clone()).show(ui);
         }
     });
 }

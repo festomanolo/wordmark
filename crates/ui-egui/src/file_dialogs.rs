@@ -74,6 +74,8 @@ pub(crate) enum AfterPick {
     WatermarkedPdf,
     /// Write the Remove Watermarks pane's PDF there without the ticked items.
     CleanPdf,
+    /// Clean the PDFs in the picked folder (`out`: write the clean copies there instead).
+    CleanFolder { out: bool },
     /// Import the picked Word bibliography file (`b:Sources`: Word's `Sources.xml`) into the
     /// document through Manage Sources (#2640).
     #[cfg(not(target_arch = "wasm32"))]
@@ -290,6 +292,21 @@ impl WordApp {
                 let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
                 crate::clean_pane::save_to(self, path);
                 Ok(json!({"saved": true}))
+            }
+            AfterPick::CleanFolder { out } => {
+                let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
+                let b = &mut self.clean.batch;
+                if out {
+                    b.out = path;
+                } else {
+                    // A new folder: the last run's results were for the old one.
+                    b.dir = path;
+                    b.out.clear();
+                    b.run = None;
+                    b.checked.clear();
+                }
+                self.clean.open = true;
+                Ok(json!({"picked": true}))
             }
             #[cfg(not(target_arch = "wasm32"))]
             AfterPick::Sources => {
@@ -540,6 +557,13 @@ impl WordApp {
         let stem = from.file_stem().map_or_else(|| "document".to_string(), |s| s.to_string_lossy().into_owned());
         let req = PickRequest::save("export").file_name(format!("{stem}-clean.pdf")).suggested_extension("pdf").filter(tl!("PDF"), &["pdf"]);
         let _ = self.ask_file(req, AfterPick::CleanPdf);
+    }
+
+    /// Pick the folder of PDFs to clean (`out`: the folder the clean copies go to).
+    pub(crate) fn pick_clean_folder(&mut self, out: bool) {
+        let title = if out { tl!("Folder for the clean copies") } else { tl!("Folder of PDFs to clean") };
+        let req = PickRequest::folder("clean-folder").title(title);
+        let _ = self.ask_file(req, AfterPick::CleanFolder { out });
     }
 
     /// Pick one or more font files to add (Add Font…).
