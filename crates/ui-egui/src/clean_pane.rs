@@ -83,11 +83,13 @@ pub(crate) struct CleanPane {
     pub picked: Vec<bool>,
     /// Texts the text reader found, for the editable document.
     pub candidates: Vec<Candidate>,
-    /// Ticked as a watermark, by candidate.
-    pub picked: Vec<bool>,
+    /// The page the preview shows (0-based).
+    pub view_page: usize,
+    /// Counts scans, so a scan of the same file again draws its pages again.
+    pub serial: u64,
     /// Which [`URL_MODES`] entry.
     pub urls: usize,
-    /// Also drop text the model isn't sure of.
+    /// Also drop text the model isn't sure of (editable document).
     pub drop_unsure: bool,
     /// The last result, and whether it was a failure.
     pub message: String,
@@ -104,7 +106,7 @@ impl CleanPane {
         URL_MODES.get(self.urls).map_or("remove", |m| m.0)
     }
 
-    /// Take a `clean.scan` result: the list, ticked where the model would remove.
+    /// Take a `clean.scan` result: the groups, ticked where the model would remove.
     fn take_scan(&mut self, r: &Value) {
         self.pages = r["pages"].as_u64().unwrap_or(0);
         self.needs_ocr = r["needsOcr"].as_array().map(|a| a.iter().filter_map(Value::as_u64).collect()).unwrap_or_default();
