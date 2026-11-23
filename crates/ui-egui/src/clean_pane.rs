@@ -157,7 +157,7 @@ fn groups(objects: &[Value]) -> Vec<Group> {
                 text: o["text"].as_str().unwrap_or_default().to_string(),
                 pages: Vec::new(),
                 boxes: Vec::new(),
-                    boxes: Vec::new(),
+                score,
                     score,
                     decision: decision.to_string(),
                 });
