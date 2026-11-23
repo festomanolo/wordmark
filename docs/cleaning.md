@@ -33,7 +33,7 @@ Design › Watermark › **Find and Remove Watermarks…** opens the Remove Wate
    more are left out. **Learn Only** keeps the picks and scans again.
 
 What you tick is remembered, and so is a dashed box you looked at and left unticked (as
-What you tick is remembered in `watermark-model.json` in the app's settings folder, the same file
+content, so the next file doesn't ask about it again). It is all kept in `watermark-model.json` in the app's settings folder, the same file
 format `--model` takes. Pictures are remembered by their pixels and by where they sit on the
 page, links by their site, text by what it reads, so the next PDF from the same source is marked
 without asking, even when its logo is a different picture file.
