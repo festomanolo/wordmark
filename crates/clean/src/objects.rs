@@ -764,53 +764,54 @@ fn weigh(f: &Found, s: [f64; 4], page: &PageFacts, repeats: bool) -> (f32, Vec<&
             if repeats {
                 add(&mut z, &mut why, 1.0, "on most pages");
             }
-            Kind::Image | Kind::Graphic | Kind::Text => {
-                z = -3.0;
-                let size_share = area(f.user_box) / page_area.max(1.0);
-                if f.obj.kind == Kind::Image && size_share >= BACKGROUND_SHARE {
-                    add(&mut z, &mut why, -6.0, "page picture");
-                }
-                if f.invisible {
-                    add(&mut z, &mut why, -6.0, "invisible text (OCR layer)");
-                }
-                let over_scan = backgrounds.iter().any(|(order, bb)| f.order > *order && overlap(f.user_box, *bb) && *bb != f.user_box);
-                // A picture pasted over a scan is the commonest stamp; text over a full-page
-                // picture is as often a designed page's real text, so it only leans.
-                if over_scan && !f.invisible {
-                    add(&mut z, &mut why, if f.obj.kind == Kind::Text { 0.5 } else { 3.5 }, "drawn over the page picture");
-                }
-                if repeats {
-                    add(&mut z, &mut why, 2.0, "on most pages");
-                }
-                if edge {
-                    add(&mut z, &mut why, 1.5, "page margin");
-                }
-                if links.iter().any(|l| overlap(f.user_box, *l)) {
-                    add(&mut z, &mut why, 2.0, "under a link");
-                }
-                if f.see_through {
-                    add(&mut z, &mut why, 0.7, "see-through");
-                }
-                if f.turned {
-                    add(&mut z, &mut why, 1.5, "turned");
-                }
-                if centred {
-                    add(&mut z, &mut why, 0.8, "middle of the page");
-                }
-                if f.obj.kind == Kind::Text {
-                    let norm = normalize(&f.obj.text);
-                    if crate::urls::contains_url(&norm) {
-                        add(&mut z, &mut why, 1.5, "web address");
-                    }
-                    if f.light {
-                        add(&mut z, &mut why, 0.8, "pale");
-                    }
-                    if body > 0.0 && f.font_size > 2.5 * body {
-                        add(&mut z, &mut why, 0.8, "large");
-                    }
-                } else if size_share < 0.03 && size_share > 0.0 {
-                    add(&mut z, &mut why, 0.5, "small");
-                }
+            z
+        }
+        Kind::Stamp => {
+            why.push(if f.font_size > 0.0 { "watermark annotation" } else { "stamp annotation" });
+            if f.font_size > 0.0 { 4.0 } else { 0.0 }
+        }
+        Kind::Image | Kind::Graphic | Kind::Text => weigh_drawn(f, s, page, edge, repeats, &mut why),
+    };
+    (z, why)
+}
+
+/// [`weigh`] for what is drawn on the page: pictures, graphics and text.
+fn weigh_drawn(f: &Found, s: [f64; 4], page: &PageFacts, edge: bool, repeats: bool, why: &mut Vec<&'static str>) -> f32 {
+    let mut z = -3.0;
+    let size_share = area(f.user_box) / (page.size[0] * page.size[1]).max(1.0);
+    if f.obj.kind == Kind::Image && size_share >= BACKGROUND_SHARE {
+        add(&mut z, why, -6.0, "page picture");
+    }
+    if f.invisible {
+        add(&mut z, why, -6.0, "invisible text (OCR layer)");
+    }
+    let over_scan = page.backgrounds.iter().any(|(order, bb)| f.order > *order && overlap(f.user_box, *bb) && *bb != f.user_box);
+    // A picture pasted over a scan is the commonest stamp; text over a full-page picture is as
+    // often a designed page's real text, so it only leans.
+    if over_scan && !f.invisible {
+        add(&mut z, why, if f.obj.kind == Kind::Text { 0.5 } else { 3.5 }, "drawn over the page picture");
+    }
+    let centred = (s[0] - 0.5).abs() < 0.15 && (s[1] - 0.5).abs() < 0.15;
+    for (on, weight, name) in [
+        (repeats, 2.0, "on most pages"),
+        (edge, 1.5, "page margin"),
+        (page.links.iter().any(|l| overlap(f.user_box, *l)), 2.0, "under a link"),
+        (f.see_through, 0.7, "see-through"),
+        (f.turned, 1.5, "turned"),
+        (centred, 0.8, "middle of the page"),
+    ] {
+        if on {
+            add(&mut z, why, weight, name);
+        }
+    }
+    if f.obj.kind == Kind::Text {
+        for (on, weight, name) in [
+            (crate::urls::contains_url(&normalize(&f.obj.text)), 1.5, "web address"),
+            (f.light, 0.8, "pale"),
+            (page.body > 0.0 && f.font_size > 2.5 * page.body, 0.8, "large"),
+        ] {
+            if on {
+                add(&mut z, why, weight, name);
             }
         }
         // What a person marked before: by what it reads, links to or holds, or where it sits.
