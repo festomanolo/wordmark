@@ -154,7 +154,7 @@ fn groups(objects: &[Value]) -> Vec<Group> {
             out.push(Group {
                 ids: Vec::new(),
                 kind: kind.to_string(),
-                    ids: Vec::new(),
+                text: o["text"].as_str().unwrap_or_default().to_string(),
                     kind: kind.to_string(),
                     text: o["text"].as_str().unwrap_or_default().to_string(),
                     pages: Vec::new(),
