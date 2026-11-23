@@ -1,6 +1,3 @@
-        std::fs::write(out, &pdf).unwrap();
-        println!("removed {r:?}, {} -> {} bytes", bytes.len(), pdf.len());
-        let again = wordcraft_clean::objects::scan(&pdf, None, &model).unwrap();
         for o in &again.objects {
             println!("after {:6} {:7} {:>4.0}% {:?}", o.id, o.kind.name(), o.score * 100.0, o.text);
         }
