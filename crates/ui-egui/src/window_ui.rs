@@ -187,6 +187,7 @@ impl WordApp {
             ui,
             canvas,
             restrict,
+            clean,
             spelling_review,
             status,
             announcement,
