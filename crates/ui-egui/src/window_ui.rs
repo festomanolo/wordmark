@@ -20,6 +20,7 @@ use crate::{Status, WordApp, backstage, canvas, chrome, colors, dialogs, file_di
 pub(crate) struct WindowUi {
     pub(crate) canvas: canvas::CanvasState,
     pub(crate) restrict: crate::restrict_pane::RestrictPane,
+    pub(crate) clean: crate::clean_pane::CleanPane,
     pub(crate) spelling_review: Option<crate::proofing_pane::SpellingForm>,
     pub(crate) status: Option<Status>,
     /// Announcement belonging to this document window.
