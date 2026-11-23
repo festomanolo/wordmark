@@ -761,9 +761,8 @@ fn weigh(f: &Found, s: [f64; 4], page: &PageFacts, repeats: bool) -> (f32, Vec<&
             if edge {
                 add(&mut z, &mut why, 1.0, "page margin");
             }
-            Kind::Stamp => {
-                z = if f.font_size > 0.0 { 4.0 } else { 0.0 };
-                why.push(if f.font_size > 0.0 { "watermark annotation" } else { "stamp annotation" });
+            if repeats {
+                add(&mut z, &mut why, 1.0, "on most pages");
             }
             Kind::Image | Kind::Graphic | Kind::Text => {
                 z = -3.0;
