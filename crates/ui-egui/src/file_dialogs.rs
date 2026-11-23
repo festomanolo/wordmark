@@ -293,7 +293,7 @@ impl WordApp {
                 crate::clean_pane::save_to(self, path);
                 Ok(json!({"saved": true}))
             }
-            AfterPick::CleanFolder { out } => {
+            AfterPick::CleanFolder => {
                 let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
                 let b = &mut self.clean.batch;
                 if out {
