@@ -650,7 +650,6 @@ struct Groups {
 /// page. Union-find over (page, index).
 fn group(found: &[Vec<Found>], spots: &[Vec<[f64; 4]>]) -> Groups {
     let flat: Vec<(usize, usize)> = found.iter().enumerate().flat_map(|(p, fs)| (0..fs.len()).map(move |i| (p, i))).collect();
-    let at: HashMap<(usize, usize), usize> = flat.iter().enumerate().map(|(n, k)| (*k, n)).collect();
     let mut parent: Vec<usize> = (0..flat.len()).collect();
     fn root(parent: &mut [usize], mut x: usize) -> usize {
         while parent[x] != x {
