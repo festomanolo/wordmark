@@ -39,8 +39,6 @@ pub(crate) struct RunState {
 #[derive(Clone, Debug)]
 pub(crate) struct Batch {
     pub dir: String,
-    /// Where the copies go; empty: beside the folder, named `<folder>-clean`.
-    pub out: String,
     pub subfolders: bool,
     /// Post a notification with a sound when a run ends.
     pub notify: bool,
