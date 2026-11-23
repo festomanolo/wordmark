@@ -271,6 +271,12 @@ fn short(dir: &str) -> String {
     let p = std::path::Path::new(dir);
     let name = |p: &std::path::Path| p.file_name().map(|n| n.to_string_lossy().into_owned());
     match (p.parent().and_then(name), name(p)) {
+        (Some(parent), Some(n)) => format!("{parent}/{n}"),
+        (None, Some(n)) => n,
+        _ => dir.to_string(),
+    }
+}
+
 /// `path` relative to `dir`, for a short row.
 fn relative(dir: &str, path: &str) -> String {
     std::path::Path::new(path).strip_prefix(dir).map_or_else(|_| path.to_string(), |p| p.to_string_lossy().into_owned())
