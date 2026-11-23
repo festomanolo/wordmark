@@ -197,15 +197,18 @@ fn base_params(app: &WordApp, st: &CleanPane) -> Value {
     p
 }
 
-/// The person's picks as `clean.*` params: ticked texts are watermarks; a text the detector would
-/// remove that was unticked is content.
-fn picks(st: &CleanPane, p: &mut Value) {
-    let pairs = || st.candidates.iter().zip(&st.picked);
-    let watermarks: Vec<&str> = pairs().filter(|(_, on)| **on).map(|(c, _)| c.text.as_str()).collect();
-    let content: Vec<&str> = pairs().filter(|(c, on)| !**on && c.decision == "remove").map(|(c, _)| c.text.as_str()).collect();
-    p["watermarks"] = json!(watermarks);
-    p["content"] = json!(content);
-    p["limit"] = json!(st.candidates.len());
+/// The ids of the ticked groups, and of the unticked ones the model would remove (the person
+/// overruled it).
+fn picked_ids(st: &CleanPane) -> (Vec<String>, Vec<String>) {
+    let (mut remove, mut keep) = (Vec::new(), Vec::new());
+    for (g, on) in st.groups.iter().zip(&st.picked) {
+        if *on {
+            remove.extend(g.ids.iter().cloned());
+        } else if g.decision == "remove" {
+            keep.extend(g.ids.iter().cloned());
+        }
+    }
+    (remove, keep)
 }
 
 /// Scan the PDF at `path` and show what was found (after the file dialog, or Scan Again).
@@ -213,8 +216,9 @@ pub(crate) fn scan(app: &mut WordApp, path: String) {
     let mut st = std::mem::take(&mut app.clean);
     st.open = true;
     st.path = path;
-    st.candidates.clear();
+    st.groups.clear();
     st.picked.clear();
+    st.candidates.clear();
     let p = base_params(app, &st);
     match app.run("clean.scan", p) {
         Ok(r) => {
