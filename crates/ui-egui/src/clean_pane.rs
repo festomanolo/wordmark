@@ -685,12 +685,7 @@ fn batch_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
         Action::None => {}
         Action::ChooseFolder => {
             app.clean = std::mem::take(st);
-            app.pick_clean_folder(false);
-            *st = std::mem::take(&mut app.clean);
-        }
-        Action::ChooseOut => {
-            app.clean = std::mem::take(st);
-            app.pick_clean_folder(true);
+            app.pick_clean_folder();
             *st = std::mem::take(&mut app.clean);
         }
         Action::Start => {
