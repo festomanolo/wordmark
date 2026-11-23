@@ -14,6 +14,11 @@ fn picture(colour: u8) -> String {
 /// right corner under a link to its site, a line of text, and `extra` content drawn after the
 /// scan. Each page has its own pictures, as such apps write them.
 fn scanned(pages: &[&str]) -> Vec<u8> {
+    scanned_with(&pages.iter().map(|p| ("", *p)).collect::<Vec<_>>())
+}
+
+/// As [`scanned`], with each page's `(before, after)` content drawn before and after the scan.
+fn scanned_with(pages: &[(&str, &str)]) -> Vec<u8> {
     let n = pages.len();
     // 1 catalog, 2 pages, 3 font, then per page: page, content, scan picture, stamp picture.
     let mut objs: Vec<String> = vec![
