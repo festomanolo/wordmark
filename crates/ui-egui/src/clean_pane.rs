@@ -255,7 +255,8 @@ fn candidate_list(ui: &mut Ui, st: &mut CleanPane) {
     }
 }
 
-/// "DRAFT COPY · pages 1–6 · 92%, watermark": the verdict in words, not only a number.
+/// "92% watermark · DRAFT COPY · pages 1–6": the verdict first, in words as well as a number, so a
+/// narrow pane cuts off the text rather than the verdict.
 fn row_label(c: &Candidate) -> String {
     let pages = match (c.pages.first(), c.pages.last()) {
         (Some(a), Some(b)) if a != b => crate::i18n::fmt(tl!("pages {a}–{b}"), &[("a", &a.to_string()), ("b", &b.to_string())]),
