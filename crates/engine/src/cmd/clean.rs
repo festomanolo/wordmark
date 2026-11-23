@@ -59,8 +59,8 @@ pub fn load_model(path: Option<&str>) -> Result<Model, String> {
             Ok(Model::default())
         }
         Some(path) => {
-            let bytes = crate::io::read_file_capped(path, MAX_MODEL, "model").map_err(CmdError::Failed)?;
-            serde_json::from_slice(&bytes).map_err(|e| CmdError::Failed(format!("{path}: {e}")))
+            let bytes = crate::io::read_file_capped(path, MAX_MODEL, "model")?;
+            serde_json::from_slice(&bytes).map_err(|e| format!("{path}: {e}"))
         }
         None => Ok(Model::default()),
     }
