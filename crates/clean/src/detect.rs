@@ -395,6 +395,27 @@ impl Model {
         }
     }
 
+    /// Remember page objects a person marked, by key: watermarks and content. A key marked one
+    /// way is no longer remembered the other way. Returns how many keys are new.
+    pub fn learn_objects(&mut self, watermarks: &[String], content: &[String]) -> usize {
+        let mut new = 0;
+        for k in watermarks {
+            self.content_objects.retain(|o| o != k);
+            if !self.watermark_objects.contains(k) {
+                self.watermark_objects.push(k.clone());
+                new += 1;
+            }
+        }
+        for k in content {
+            self.watermark_objects.retain(|o| o != k);
+            if !self.content_objects.contains(k) {
+                self.content_objects.push(k.clone());
+                new += 1;
+            }
+        }
+        new
+    }
+
     /// Read a model saved with [`Model::to_json`]; a missing file is a new model.
     pub fn load(path: &std::path::Path) -> Result<Model, String> {
         match std::fs::read(path) {
