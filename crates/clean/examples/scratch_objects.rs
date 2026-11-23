@@ -1,6 +1,3 @@
-            o.kind.name(),
-            o.score * 100.0,
-            o.decision,
             o.group,
             o.bbox.map(|v| v.round()),
             o.pixels,
