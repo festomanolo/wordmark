@@ -36,7 +36,7 @@ fn scanned_with(pages: &[(&str, &str)]) -> Vec<u8> {
             o + 3
         ));
         let c = format!(
-            "BT /F1 13 Tf 510 15 Td (ScanApp) Tj ET\nq 550 0 0 777 22 45 cm /Scan Do Q\nBT /F1 11 Tf 72 {} Td ({}) Tj ET\n{extra}\n",
+            "BT /F1 13 Tf 510 15 Td (ScanApp) Tj ET\n{before}\nq 550 0 0 777 22 45 cm /Scan Do Q\nBT /F1 11 Tf 72 {} Td ({}) Tj ET\n{extra}\n",
             700 - 40 * i,
             LINES[i % LINES.len()]
         );
