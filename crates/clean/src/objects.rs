@@ -865,6 +865,8 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
         obj.keys = ks;
         obj.group = groups.name.get(&groups.root[n]).cloned().unwrap_or_default();
     }
+    one_verdict_per_group(found, model);
+}
 
     // The same thing on several pages is one thing: it takes its strongest page's verdict on
     // every page (a header drawn over the scan on some pages and before it on others), unless a
