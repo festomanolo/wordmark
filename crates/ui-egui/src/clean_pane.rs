@@ -101,6 +101,7 @@ pub(crate) struct CleanPane {
     /// What Clean This Document did, shown under its button.
     pub doc_message: String,
     /// Bring the page preview into view on the next frame (a file opened from the folder list,
+    /// which sits above it).
 }
 
 impl CleanPane {
