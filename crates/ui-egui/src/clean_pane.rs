@@ -596,14 +596,54 @@ fn learn(app: &mut WordApp, st: &mut CleanPane) -> bool {
     }
 }
 
+/// Keep the picks (where a model is kept), then write the PDF without the ticked items to `out`
+/// (after the Save dialog).
+pub(crate) fn save_to(app: &mut WordApp, out: String) {
+    let mut st = std::mem::take(&mut app.clean);
+    if model_path(app).is_none() || learn(app, &mut st) {
+        let (remove, keep) = picked_ids(&st);
+        let mut p = base_params(app, &st);
+        p["out"] = json!(out);
+        p["remove"] = json!(remove);
+        p["keep"] = json!(keep);
+        match app.run("clean.savePdf", p) {
+            Ok(r) => {
+                let n = |k: &str| r[k].as_u64().unwrap_or(0).to_string();
+                let msg = crate::i18n::fmt(
+                    tl!("Saved {name}. Removed: {pictures} pictures, {texts} texts, {links} links, {stamps} stamps."),
+                    &[
+                        ("name", &file_name(&out)),
+                        ("pictures", &(r["images"].as_u64().unwrap_or(0) + r["graphics"].as_u64().unwrap_or(0)).to_string()),
+                        ("texts", &n("texts")),
+                        ("links", &n("links")),
+                        ("stamps", &n("stamps")),
+                    ],
+                );
+                app.status(msg.clone());
+                st.say(msg, false);
+            }
+            Err(e) => st.say(e, true),
+        }
+    }
+    app.clean = st;
+}
+
 /// Keep the picks (where a model is kept), then open the PDF rebuilt without the watermarks.
-/// The picks also go with the call, so they apply even where nothing is kept.
+/// The ticked texts also go with the call (the ones the text reader found too), so they apply
+/// even where nothing is kept.
 fn open_cleaned(app: &mut WordApp, st: &mut CleanPane) {
     if model_path(app).is_some() && !learn(app, st) {
         return;
     }
+    let same = |a: &str, b: &str| a.trim().eq_ignore_ascii_case(b.trim());
+    let known = |t: &str| st.candidates.iter().any(|c| same(&c.text, t));
+    let pairs = || st.groups.iter().zip(&st.picked).filter(|(g, _)| g.kind == "text" && !g.text.is_empty() && known(&g.text));
+    let watermarks: Vec<&str> = pairs().filter(|(_, on)| **on).map(|(g, _)| g.text.as_str()).collect();
+    let content: Vec<&str> = pairs().filter(|(g, on)| !**on && g.decision == "remove").map(|(g, _)| g.text.as_str()).collect();
     let mut p = base_params(app, st);
-    picks(st, &mut p);
+    p["watermarks"] = json!(watermarks);
+    p["content"] = json!(content);
+    p["limit"] = json!(st.candidates.len().max(1));
     p["dropFlagged"] = json!(st.drop_unsure);
     match app.run("clean.openPdf", p) {
         Ok(r) => {
