@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 use craft::theme::variant::Tone;
 use craft::ui::buttons::Button;
 use craft::ui::choice::Checkbox;
-use craft::ui::contract::{Bind, Props as _, Show as _, ShowContainer as _};
+use craft::ui::contract::{Bind, Props as _, Show as _, ShowContainer as _, Sizing};
 use craft::ui::display::{Progress, Text};
 use craft::ui::layout_components::Row;
 use craft::ui::notices::Notice;
@@ -181,8 +181,9 @@ pub(crate) fn section(ui: &mut Ui, b: &mut Batch) -> Action {
         if b.dir.is_empty() {
             return;
         }
-        Text::new(crate::i18n::fmt(tl!("From: {dir}"), &[("dir", &b.dir)])).show(ui);
-        Text::new(crate::i18n::fmt(tl!("To: {dir}"), &[("dir", &b.out_dir())])).show(ui);
+        // The folder's own name and its parent's: a whole path is cut off in a narrow pane.
+        Text::new(crate::i18n::fmt(tl!("From: {dir}"), &[("dir", &short(&b.dir))])).show(ui);
+        Text::new(crate::i18n::fmt(tl!("To: {dir}"), &[("dir", &short(&b.out_dir()))])).show(ui);
         Checkbox::new(Bind::bound(&mut b.subfolders)).label(tl!("Include subfolders")).enabled(!running).show(ui);
         Checkbox::new(Bind::bound(&mut b.notify)).label(tl!("Notify me with a sound when it's done")).show(ui);
         if running {
@@ -210,7 +211,7 @@ fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
     let done = s.files.len();
     match s.total {
         None => {
-            Progress::indeterminate().label(tl!("Finding PDFs")).show(ui);
+            Progress::indeterminate().label(tl!("Finding PDFs")).sizing(Sizing::FillWidth).show(ui);
             Text::new(tl!("Finding PDFs…")).show(ui);
         }
         Some(0) => {
@@ -218,7 +219,7 @@ fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
             return None;
         }
         Some(total) => {
-            Progress::new(done as f32 / total as f32).label(tl!("Cleaning PDFs")).show(ui);
+            Progress::new(done as f32 / total as f32).label(tl!("Cleaning PDFs")).sizing(Sizing::FillWidth).show(ui);
             let line = if s.finished && s.stopped {
                 crate::i18n::fmt(tl!("Stopped: {done} of {total} PDFs done."), &[("done", &done.to_string()), ("total", &total.to_string())])
             } else if s.finished {
@@ -251,7 +252,8 @@ fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
                 }
                 let status = if done { tl!("checked") } else { tl!("not sure of {n}") };
                 let status = crate::i18n::fmt(status, &[("n", &f.unsure.to_string())]);
-                Text::new(format!("{} · {status}", relative(&b.dir, &f.input))).show(ui);
+                // What to do first: a narrow pane cuts off the end of the name, not the count.
+                Text::new(format!("{status} · {}", relative(&b.dir, &f.input))).show(ui);
             });
         }
         if check.len() > LISTED {
@@ -262,6 +264,17 @@ fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
         Notice::new(Tone::Bad, format!("{}: {}", relative(&b.dir, &f.input), f.error)).show(ui);
     }
     action
+}
+
+/// A folder's name with its parent's ("past-papers/term 2"), for a narrow pane.
+fn short(dir: &str) -> String {
+    let p = std::path::Path::new(dir);
+    let name = |p: &std::path::Path| p.file_name().map(|n| n.to_string_lossy().into_owned());
+    match (p.parent().and_then(name), name(p)) {
+        (Some(parent), Some(n)) => format!("{parent}/{n}"),
+        (None, Some(n)) => n,
+        _ => dir.to_string(),
+    }
 }
 
 /// `path` relative to `dir`, for a short row.

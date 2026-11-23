@@ -14,6 +14,11 @@ fn picture(colour: u8) -> String {
 /// right corner under a link to its site, a line of text, and `extra` content drawn after the
 /// scan. Each page has its own pictures, as such apps write them.
 fn scanned(pages: &[&str]) -> Vec<u8> {
+    scanned_with(&pages.iter().map(|p| ("", *p)).collect::<Vec<_>>())
+}
+
+/// As [`scanned`], with each page's `(before, after)` content drawn before and after the scan.
+fn scanned_with(pages: &[(&str, &str)]) -> Vec<u8> {
     let n = pages.len();
     // 1 catalog, 2 pages, 3 font, then per page: page, content, scan picture, stamp picture.
     let mut objs: Vec<String> = vec![
@@ -21,7 +26,7 @@ fn scanned(pages: &[&str]) -> Vec<u8> {
         format!("<< /Type /Pages /Kids [{}] /Count {n} >>", (0..n).map(|i| format!("{} 0 R", 4 + 4 * i)).collect::<Vec<_>>().join(" ")),
         "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".into(),
     ];
-    for (i, extra) in pages.iter().enumerate() {
+    for (i, (before, extra)) in pages.iter().enumerate() {
         let o = 4 + 4 * i;
         objs.push(format!(
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents {} 0 R /Resources << /Font << /F1 3 0 R >> /XObject << /Scan {} 0 R /Stamp {} 0 R >> >> \
@@ -31,7 +36,7 @@ fn scanned(pages: &[&str]) -> Vec<u8> {
             o + 3
         ));
         let c = format!(
-            "BT /F1 13 Tf 510 15 Td (ScanApp) Tj ET\nq 550 0 0 777 22 45 cm /Scan Do Q\nBT /F1 11 Tf 72 {} Td ({}) Tj ET\n{extra}\n",
+            "BT /F1 13 Tf 510 15 Td (ScanApp) Tj ET\n{before}\nq 550 0 0 777 22 45 cm /Scan Do Q\nBT /F1 11 Tf 72 {} Td ({}) Tj ET\n{extra}\n",
             700 - 40 * i,
             LINES[i % LINES.len()]
         );
@@ -125,4 +130,14 @@ fn a_picture_marked_once_is_recognised_where_it_sits_in_the_next_file_from_that_
     let s = scan(&next, None, &model).expect("reads");
     let again = find(&s, 2, Kind::Image, |o| !is_scan(o));
     assert_eq!(again.decision, Decision::Remove, "{again:#?}");
+}
+
+#[test]
+fn a_mark_in_the_same_spot_on_every_page_gets_one_verdict_though_only_some_pages_draw_it_over_the_scan() {
+    let mark = "q 130 0 0 20 232 800 cm /Stamp Do Q";
+    let pdf = scanned_with(&[("", mark), (mark, ""), ("", mark)]);
+    let s = scan(&pdf, None, &Model::default()).unwrap();
+    let marks: Vec<&PageObject> = s.objects.iter().filter(|o| o.kind == Kind::Image && o.bbox[3] < 60.0).collect();
+    assert_eq!(marks.len(), 3, "{marks:#?}");
+    assert!(marks.iter().all(|m| m.decision == Decision::Remove), "{marks:#?}");
 }

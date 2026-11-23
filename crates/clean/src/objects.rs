@@ -828,6 +828,25 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
         obj.keys = ks;
         obj.group = group_first.get(&r).cloned().unwrap_or_default();
     }
+
+    // The same thing on several pages is one thing: it takes its strongest page's verdict on
+    // every page (a header drawn over the scan on some pages and before it on others), unless a
+    // person marked it as content.
+    let mut best: HashMap<String, f32> = HashMap::new();
+    for o in found.iter().flatten().map(|f| &f.obj) {
+        let b = best.entry(o.group.clone()).or_insert(o.score);
+        *b = b.max(o.score);
+    }
+    for o in found.iter_mut().flatten().map(|f| &mut f.obj) {
+        if let Some(&b) = best.get(&o.group)
+            && b > o.score
+            && !o.reasons.iter().any(|r| r == "marked as content before")
+        {
+            o.score = b;
+            o.decision = model.decide(b);
+            o.reasons.push("as on its other pages".to_string());
+        }
+    }
 }
 
 /// Every object of the PDF's pages with how much it looks like a watermark. `password` opens an
