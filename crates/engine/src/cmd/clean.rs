@@ -56,12 +56,7 @@ fn model(v: &Value) -> Result<Model, CmdError> {
 /// The pages of the PDF `v` names (`path`, `password`).
 fn read_pdf(v: &Value) -> Result<(String, Vec<PageText>), CmdError> {
     let path = p::req_str(v, "path")?;
-    crate::file_access::check_read(path).map_err(CmdError::Failed)?;
-    let size = std::fs::metadata(path).map_err(|e| CmdError::Failed(format!("{path}: {e}")))?.len();
-    if size > MAX_PDF {
-        return Err(CmdError::Failed(format!("{path} is larger than {} MB", MAX_PDF / (1024 * 1024))));
-    }
-    let bytes = std::fs::read(path).map_err(|e| CmdError::Failed(format!("{path}: {e}")))?;
+    let bytes = crate::io::read_file_capped(path, MAX_PDF, "PDF").map_err(CmdError::Failed)?;
     if !bytes.starts_with(b"%PDF") && !bytes.windows(5).take(1024).any(|w| w == b"%PDF-") {
         return Err(CmdError::Failed(format!("{path} is not a PDF")));
     }
