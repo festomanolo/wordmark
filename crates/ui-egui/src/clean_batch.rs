@@ -114,7 +114,7 @@ pub(crate) fn start(ctx: &egui::Context, b: &mut Batch, model: Option<String>) {
             }
             ctx.request_repaint();
         };
-        let result = wordcraft_engine::cmd::clean::folder_jobs(&dir, &out, subfolders).and_then(|jobs| {
+        let result = wordcraft_engine::cmd::clean::folder_jobs(&dir, subfolders).and_then(|jobs| {
             set(&mut |s| s.total = Some(jobs.len()));
             wordcraft_engine::cmd::clean::clean_folder_files(&jobs, model.as_deref(), None, &cancel, &|f| set(&mut |s| s.files.push(f.clone())))
         });
