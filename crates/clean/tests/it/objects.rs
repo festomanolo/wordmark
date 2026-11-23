@@ -131,3 +131,8 @@ fn a_picture_marked_once_is_recognised_where_it_sits_in_the_next_file_from_that_
     let again = find(&s, 2, Kind::Image, |o| !is_scan(o));
     assert_eq!(again.decision, Decision::Remove, "{again:#?}");
 }
+
+#[test]
+fn a_mark_in_the_same_spot_on_every_page_gets_one_verdict_though_only_some_pages_draw_it_over_the_scan() {
+    let mark = "q 130 0 0 20 232 800 cm /Stamp Do Q";
+    let pdf = scanned_with(&[("", mark), (mark, ""), ("", mark)]);
