@@ -211,7 +211,7 @@ fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
     let done = s.files.len();
     match s.total {
         None => {
-            Progress::indeterminate().label(tl!("Finding PDFs")).show(ui);
+            Progress::indeterminate().label(tl!("Finding PDFs")).sizing(Sizing::FillWidth).show(ui);
             Text::new(tl!("Finding PDFs…")).show(ui);
         }
         Some(0) => {
