@@ -33,6 +33,7 @@ pub mod canvas;
 pub mod caret_glide;
 pub mod chrome;
 // PLAN: the `colors` module line stays because `more_colors` (ribbon-w11, rb.A4) names `colors::Target`; the sheet's removal list assumed the dialog went with it.
+mod clean_batch;
 mod clean_pane;
 pub mod colors;
 pub mod content_controls;
