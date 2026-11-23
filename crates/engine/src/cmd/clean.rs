@@ -274,8 +274,9 @@ pub fn folder_jobs(dir: &str, subfolders: bool) -> Result<Vec<(String, String)>,
     Ok(found
         .into_iter()
         .map(|f| {
-            let rel = f.strip_prefix(root).map_or_else(|_| PathBuf::from(f.file_name().unwrap_or_default()), Path::to_path_buf);
-            (f.to_string_lossy().into_owned(), out_root.join(rel).to_string_lossy().into_owned())
+            let input = f.to_string_lossy().into_owned();
+            let output = clean_copy_path(&input);
+            (input, output)
         })
         .collect())
 }
