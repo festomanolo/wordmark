@@ -136,7 +136,7 @@ pub(crate) fn scan(app: &mut WordApp, path: String) {
             let found = st.picked.iter().filter(|p| **p).count();
             let unsure = st.candidates.iter().filter(|c| c.decision == "review").count();
             let msg = crate::i18n::fmt(
-                tl!("{found} texts look like watermarks; {unsure} are unsure. Tick the ones that are."),
+                tl!("Watermarks found: {found}. Not sure: {unsure}. Tick every text that is a watermark."),
                 &[("found", &found.to_string()), ("unsure", &unsure.to_string())],
             );
             app.status(msg.clone());
