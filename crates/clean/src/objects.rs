@@ -868,9 +868,10 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
     one_verdict_per_group(found, model);
 }
 
-    // The same thing on several pages is one thing: it takes its strongest page's verdict on
-    // every page (a header drawn over the scan on some pages and before it on others), unless a
-    // person marked it as content.
+/// The same thing on several pages is one thing: it takes its strongest page's verdict on every
+/// page (a header drawn over the scan on some pages and before it on others), unless a person
+/// marked it as content.
+fn one_verdict_per_group(found: &mut [Vec<Found>], model: &Model) {
     let mut best: HashMap<String, f32> = HashMap::new();
     for o in found.iter().flatten().map(|f| &f.obj) {
         let b = best.entry(o.group.clone()).or_insert(o.score);
