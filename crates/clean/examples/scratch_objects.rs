@@ -18,3 +18,5 @@ fn main() {
             let pic = wordcraft_clean::objects::render_page(&pdf, None, p, 900).unwrap();
             println!("page {} rendered {}x{}", p + 1, pic.width, pic.height);
         }
+    }
+}
