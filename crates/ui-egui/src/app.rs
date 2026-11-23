@@ -137,7 +137,7 @@ impl WordApp {
             print_document: None,
             canvas,
             restrict,
-            clean: Default::default(),
+            clean,
             spelling_review,
             status,
             announcement,
