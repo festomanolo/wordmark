@@ -338,6 +338,26 @@ pub fn clean_folder_files(
         for _ in 0..workers {
             s.spawn(|| {
                 crate::file_access::confine(roots.as_ref(), || {
+                    while !cancel.load(Ordering::Relaxed) {
+                        let at = next.fetch_add(1, Ordering::Relaxed);
+                        let Some((input, output)) = jobs.get(at) else { break };
+                        let f = clean_folder_file(input, output, &model, password);
+                        progress(&f);
+                        if let Ok(mut d) = done.lock() {
+                            d.push((at, f));
+                        }
+                    }
+                });
+            });
+        }
+    });
+    let mut done = done.into_inner().unwrap_or_else(std::sync::PoisonError::into_inner);
+    done.sort_by_key(|(at, _)| *at);
+    Ok(done.into_iter().map(|(_, f)| f).collect())
+}
+
+/// `clean.folder`: clean every PDF in a folder with what the model has learned.
+fn folder(_: &mut Session, v: &Value) -> CmdResult {
 /// The largest preview side (pixels).
 const MAX_PREVIEW_SIDE: u32 = 2400;
 
