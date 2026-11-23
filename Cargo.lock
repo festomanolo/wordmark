@@ -1395,7 +1395,7 @@ name = "craft-cms"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=243d68e12d05e89122db6d154924bf1992e10d38#243d68e12d05e89122db6d154924bf1992e10d38"
 dependencies = [
- "md-5",
+ "md-5 0.10.6",
  "rayon",
 ]
 
@@ -1942,11 +1942,23 @@ name = "craft-pdf"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=243d68e12d05e89122db6d154924bf1992e10d38#243d68e12d05e89122db6d154924bf1992e10d38"
 dependencies = [
+ "aes",
+ "bytemuck",
+ "chrono",
+ "craft-stream-codecs",
+ "flate2",
+ "hayro",
  "hayro-interpret",
  "hayro-syntax",
+ "js-sys",
  "krilla",
+ "md-5 0.11.0",
  "serde",
+ "sha2 0.11.1",
+ "stringprep",
  "thiserror 2.0.21",
+ "wasm-bindgen",
+ "zeroize",
 ]
 
 [[package]]
@@ -2086,6 +2098,17 @@ source = "git+https://github.com/storytold/craft-libs?rev=243d68e12d05e89122db6d
 name = "craft-ssip"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=243d68e12d05e89122db6d154924bf1992e10d38#243d68e12d05e89122db6d154924bf1992e10d38"
+
+[[package]]
+name = "craft-stream-codecs"
+version = "0.1.0"
+source = "git+https://github.com/storytold/craft-libs?rev=243d68e12d05e89122db6d154924bf1992e10d38#243d68e12d05e89122db6d154924bf1992e10d38"
+dependencies = [
+ "fax",
+ "hayro-ccitt",
+ "hayro-jbig2",
+ "thiserror 2.0.21",
+]
 
 [[package]]
 name = "craft-svg"
@@ -2481,7 +2504,7 @@ source = "git+https://github.com/storytold/craft-libs?rev=243d68e12d05e89122db6d
 dependencies = [
  "craft-cfb",
  "craft-sheet",
- "md-5",
+ "md-5 0.10.6",
  "miniz_oxide 0.9.1",
  "sha1 0.10.7",
  "thiserror 2.0.21",
@@ -3091,7 +3114,7 @@ dependencies = [
  "unicode-general-category",
  "unicode-properties",
  "unicode-segmentation",
- "vello_cpu",
+ "vello_cpu 0.2.0",
 ]
 
 [[package]]
@@ -3602,6 +3625,23 @@ dependencies = [
 
 [[package]]
 name = "glifo"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d99fc21d493812643aae86d53b7bbd02f376434a90317e8a790bc209fdd6605e"
+dependencies = [
+ "bytemuck",
+ "foldhash 0.2.0",
+ "hashbrown 0.17.1",
+ "log",
+ "peniko",
+ "png 0.18.1",
+ "skrifa 0.42.1",
+ "smallvec",
+ "vello_common 0.0.9",
+]
+
+[[package]]
+name = "glifo"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "282a26c1e23de04bdab3e34a21b6f877a479b96737792516b9b8b8f69b6661be"
@@ -3614,7 +3654,7 @@ dependencies = [
  "png 0.18.1",
  "skrifa 0.44.0",
  "smallvec",
- "vello_common",
+ "vello_common 0.2.0",
 ]
 
 [[package]]
@@ -3815,6 +3855,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 dependencies = [
  "foldhash 0.2.0",
+]
+
+[[package]]
+name = "hayro"
+version = "0.7.1"
+source = "git+https://github.com/storytold/craft-libs?rev=243d68e12d05e89122db6d154924bf1992e10d38#243d68e12d05e89122db6d154924bf1992e10d38"
+dependencies = [
+ "bytemuck",
+ "hayro-interpret",
+ "image",
+ "kurbo",
+ "log",
+ "pic-scale",
+ "vello_cpu 0.0.8",
 ]
 
 [[package]]
@@ -4842,6 +4896,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "md-5"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69b6441f590336821bb897fb28fc622898ccceb1d6cea3fde5ea86b090c4de98"
+dependencies = [
+ "cfg-if",
+ "digest 0.11.3",
+]
+
+[[package]]
 name = "md4"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5853,6 +5917,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c6fd9027e2d9319be6349febd1db4e8d02aa544921200c9b777720ac34a3aa89"
 dependencies = [
  "siphasher",
+]
+
+[[package]]
+name = "pic-scale"
+version = "0.7.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d76fd225dc3b8f089eaac369a74f57f557faffbd5da109ddd4e011010ab3ca10"
+dependencies = [
+ "num-traits",
+ "pxfm",
 ]
 
 [[package]]
@@ -8154,6 +8228,40 @@ dependencies = [
 
 [[package]]
 name = "vello_common"
+version = "0.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3361bff7f7d82c0c496b92048db83846691f0e844cc28dee92b1c824291b55ee"
+dependencies = [
+ "bytemuck",
+ "fearless_simd",
+ "guillotiere",
+ "hashbrown 0.17.1",
+ "log",
+ "peniko",
+ "png 0.18.1",
+ "smallvec",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "vello_common"
+version = "0.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19d672facaa2d697285a786cd9d44d614cd2ce54cdc022504bf339f8fff3b750"
+dependencies = [
+ "bytemuck",
+ "fearless_simd",
+ "guillotiere",
+ "hashbrown 0.17.1",
+ "log",
+ "peniko",
+ "png 0.18.1",
+ "smallvec",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "vello_common"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbb2141a2bca6e6d598e471fd4d1d7eed8e020aad6a28187edda07f091a325dd"
@@ -8170,19 +8278,32 @@ dependencies = [
 
 [[package]]
 name = "vello_cpu"
+version = "0.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d8ded630e8316bb94a55881256506d1f3b9947b5f66db8a7d32ca7ba02decd0"
+dependencies = [
+ "bytemuck",
+ "glifo 0.1.1",
+ "hashbrown 0.17.1",
+ "png 0.18.1",
+ "vello_common 0.0.8",
+]
+
+[[package]]
+name = "vello_cpu"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ace506ca414548966fcf3c283be94eb1cad8254de488791ee698bf438b0890a9"
 dependencies = [
  "bytemuck",
  "crossbeam-channel",
- "glifo",
+ "glifo 0.3.0",
  "hashbrown 0.17.1",
  "ordered-channel",
  "png 0.18.1",
  "rayon",
  "thread_local",
- "vello_common",
+ "vello_common 0.2.0",
 ]
 
 [[package]]
@@ -9331,7 +9452,7 @@ dependencies = [
  "craft-metafile",
  "image",
  "log",
- "vello_cpu",
+ "vello_cpu 0.2.0",
  "wordcraft-doc",
  "wordcraft-fonts",
  "wordcraft-geom",
@@ -9970,8 +10091,3 @@ source = "git+https://github.com/storytold/egui.git?rev=7e1c30d142bc7879d043e74b
 name = "egui_system_font_provider"
 version = "0.37.0"
 source = "git+https://github.com/storytold/egui.git?rev=7e1c30d142bc7879d043e74b5ceb3ecfe7f51329#7e1c30d142bc7879d043e74b5ceb3ecfe7f51329"
-
-[[patch.unused]]
-name = "hayro"
-version = "0.7.1"
-source = "git+https://github.com/storytold/craft-libs?rev=243d68e12d05e89122db6d154924bf1992e10d38#243d68e12d05e89122db6d154924bf1992e10d38"

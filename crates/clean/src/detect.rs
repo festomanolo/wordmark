@@ -72,6 +72,11 @@ pub struct Model {
     pub watermark_texts: Vec<String>,
     /// Normalised texts marked as content.
     pub content_texts: Vec<String>,
+    /// Page objects marked as watermarks, by [`crate::objects::PageObject::key`]: what a picture
+    /// holds or where it sits, what a link points to.
+    pub watermark_objects: Vec<String>,
+    /// Page objects marked as content.
+    pub content_objects: Vec<String>,
 }
 
 impl Default for Model {
@@ -85,6 +90,8 @@ impl Default for Model {
             examples: Vec::new(),
             watermark_texts: Vec::new(),
             content_texts: Vec::new(),
+            watermark_objects: Vec::new(),
+            content_objects: Vec::new(),
         }
     }
 }
@@ -386,6 +393,27 @@ impl Model {
             self.weights = w;
             self.bias = b;
         }
+    }
+
+    /// Remember page objects a person marked, by key: watermarks and content. A key marked one
+    /// way is no longer remembered the other way. Returns how many keys are new.
+    pub fn learn_objects(&mut self, watermarks: &[String], content: &[String]) -> usize {
+        let mut new = 0;
+        for k in watermarks {
+            self.content_objects.retain(|o| o != k);
+            if !self.watermark_objects.contains(k) {
+                self.watermark_objects.push(k.clone());
+                new += 1;
+            }
+        }
+        for k in content {
+            self.watermark_objects.retain(|o| o != k);
+            if !self.content_objects.contains(k) {
+                self.content_objects.push(k.clone());
+                new += 1;
+            }
+        }
+        new
     }
 
     /// Read a model saved with [`Model::to_json`]; a missing file is a new model.

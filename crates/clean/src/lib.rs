@@ -8,6 +8,9 @@
 //!   review;
 //! - [`rebuild`] turns the kept spans back into paragraphs and headings in an editable document;
 //! - [`doc_clean`] cleans a document that is already editable (.docx, .doc, .odt…);
+//! - [`objects`] finds the pictures, text, links and stamps drawn over a page (a logo pasted on
+//!   a scan, a scanner app's footer and link) and removes them from the PDF itself, keeping the
+//!   rest of the page as it was;
 //! - [`urls`] finds and removes web addresses and links;
 //! - [`pipeline`] runs a batch as three concurrent stages (read, clean, write).
 //!
@@ -18,6 +21,7 @@
 pub mod detect;
 pub mod doc_clean;
 pub mod extract;
+pub mod objects;
 pub mod pipeline;
 pub mod rebuild;
 pub mod urls;
