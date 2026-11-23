@@ -914,13 +914,8 @@ pub fn remove(bytes: &[u8], password: Option<&str>, ids: &[String]) -> Result<(V
             let refs: Vec<Object> = new.iter().map(|data| Object::Ref(doc.add(Stream::flate(Dict::new(), data)))).collect();
             dict.set(b"Contents".to_vec(), Object::Array(refs));
             // Pictures the page no longer draws leave its resources (a copy: they may be shared).
-            let still: HashSet<Vec<u8>> = Pieces::join(&new)
-                .parse()
-                .ops
-                .iter()
-                .filter(|o| o.is("Do"))
-                .filter_map(|o| o.last_name().map(<[u8]>::to_vec))
-                .collect();
+            let still: HashSet<Vec<u8>> =
+                Pieces::join(&new).parse().ops.iter().filter(|o| o.is("Do")).filter_map(|o| o.last_name().map(<[u8]>::to_vec)).collect();
             let gone: Vec<Vec<u8>> = dropped_names.into_iter().filter(|n| !still.contains(n)).collect();
             if !gone.is_empty() {
                 let mut res = page.resources.clone();
