@@ -296,15 +296,10 @@ impl WordApp {
             AfterPick::CleanFolder => {
                 let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
                 let b = &mut self.clean.batch;
-                if out {
-                    b.out = path;
-                } else {
-                    // A new folder: the last run's results were for the old one.
-                    b.dir = path;
-                    b.out.clear();
-                    b.run = None;
-                    b.checked.clear();
-                }
+                // A new folder: the last run's results were for the old one.
+                b.dir = path;
+                b.run = None;
+                b.checked.clear();
                 self.clean.open = true;
                 Ok(json!({"picked": true}))
             }
