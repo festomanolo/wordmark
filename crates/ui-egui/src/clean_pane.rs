@@ -272,9 +272,6 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     batch_section(app, ui, st);
     if st.path.is_empty() || st.page_sizes.is_empty() {
         return;
-    if st.show_pages && !ui.is_sizing_pass() && ui.is_visible() {
-        st.show_pages = false;
-        ui.scroll_to_cursor(Some(egui::Align::TOP));
     }
     Section::fixed(tl!("2. Check the pages")).show(ui, |ui, _| {
         page_nav(ui, st);
