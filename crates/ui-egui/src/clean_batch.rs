@@ -39,8 +39,6 @@ pub(crate) struct RunState {
 #[derive(Clone, Debug)]
 pub(crate) struct Batch {
     pub dir: String,
-    /// Where the copies go; empty: beside the folder, named `<folder>-clean`.
-    pub out: String,
     pub subfolders: bool,
     /// Post a notification with a sound when a run ends.
     pub notify: bool,
@@ -54,7 +52,6 @@ impl Default for Batch {
     fn default() -> Self {
         Batch {
             dir: String::new(),
-            out: String::new(),
             subfolders: true,
             notify: true,
             run: None,
@@ -65,11 +62,6 @@ impl Default for Batch {
 }
 
 impl Batch {
-    /// The folder the copies go to.
-    pub fn out_dir(&self) -> String {
-        if self.out.is_empty() { wordcraft_engine::cmd::clean::default_folder_out(&self.dir) } else { self.out.clone() }
-    }
-
     pub fn running(&self) -> bool {
         self.run.as_ref().is_some_and(|r| r.lock().is_ok_and(|r| !r.finished))
     }
@@ -79,7 +71,6 @@ impl Batch {
 pub(crate) enum Action {
     None,
     ChooseFolder,
-    ChooseOut,
     Start,
     /// Open this file in the pane to check it; saving writes `output`.
     Check {
@@ -107,7 +98,7 @@ pub(crate) fn start(ctx: &egui::Context, b: &mut Batch, model: Option<String>) {
     b.cancel = Arc::new(AtomicBool::new(false));
     b.checked.clear();
     b.run = Some(Arc::clone(&state));
-    let (dir, out, subfolders, notify, cancel, ctx) = (b.dir.clone(), b.out_dir(), b.subfolders, b.notify, Arc::clone(&b.cancel), ctx.clone());
+    let (dir, subfolders, notify, cancel, ctx) = (b.dir.clone(), b.subfolders, b.notify, Arc::clone(&b.cancel), ctx.clone());
     let words = Words {
         title: tl!("PDFs cleaned").to_string(),
         clean: tl!("{n} PDFs cleaned. Nothing needs your check.").to_string(),
@@ -123,7 +114,7 @@ pub(crate) fn start(ctx: &egui::Context, b: &mut Batch, model: Option<String>) {
             }
             ctx.request_repaint();
         };
-        let result = wordcraft_engine::cmd::clean::folder_jobs(&dir, &out, subfolders).and_then(|jobs| {
+        let result = wordcraft_engine::cmd::clean::folder_jobs(&dir, subfolders).and_then(|jobs| {
             set(&mut |s| s.total = Some(jobs.len()));
             wordcraft_engine::cmd::clean::clean_folder_files(&jobs, model.as_deref(), None, &cancel, &|f| set(&mut |s| s.files.push(f.clone())))
         });
@@ -176,16 +167,13 @@ pub(crate) fn section(ui: &mut Ui, b: &mut Batch) -> Action {
             if Button::new(tl!("Choose Folder…")).enabled(!running).show(ui).clicked() {
                 action = Action::ChooseFolder;
             }
-            if !b.dir.is_empty() && Button::new(tl!("Change Output Folder…")).enabled(!running).show(ui).clicked() {
-                action = Action::ChooseOut;
-            }
         });
         if b.dir.is_empty() {
             return;
         }
         // The folder's own name and its parent's: a whole path is cut off in a narrow pane.
         Text::new(crate::i18n::fmt(tl!("From: {dir}"), &[("dir", &short(&b.dir))])).show(ui);
-        Text::new(crate::i18n::fmt(tl!("To: {dir}"), &[("dir", &short(&b.out_dir()))])).show(ui);
+        Text::new(tl!("Each clean copy is saved next to its PDF, named <name>-clean.pdf. The originals are not changed.")).show(ui);
         Checkbox::new(Bind::bound(&mut b.subfolders)).label(tl!("Include subfolders")).enabled(!running).show(ui);
         Checkbox::new(Bind::bound(&mut b.notify)).label(tl!("Notify me with a sound when it's done")).show(ui);
         if running {

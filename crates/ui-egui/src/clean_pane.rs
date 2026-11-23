@@ -656,9 +656,9 @@ pub(crate) fn save_to(app: &mut WordApp, out: String) {
     app.clean = st;
 }
 
-/// Set the folder to clean (and where the copies go), as Choose Folder… does; `start` starts
-/// cleaning it. For automation (`ui.dialog {name: "removeWatermarks", folder}`).
-pub(crate) fn set_folder(app: &mut WordApp, folder: &str, out: Option<&str>, start: bool) {
+/// Set the folder to clean, as Choose Folder… does; `start` starts cleaning it. For automation
+/// (`ui.dialog {name: "removeWatermarks", folder}`).
+pub(crate) fn set_folder(app: &mut WordApp, folder: &str, start: bool) {
     let ctx = app.ctx.clone();
     let model = model_path(app).filter(|m| std::path::Path::new(m).exists());
     let b = &mut app.clean.batch;
@@ -667,7 +667,6 @@ pub(crate) fn set_folder(app: &mut WordApp, folder: &str, out: Option<&str>, sta
         b.checked.clear();
     }
     b.dir = folder.to_string();
-    b.out = out.unwrap_or_default().to_string();
     // Without a window yet there is nothing to show the run in: it waits for Start Cleaning.
     if start
         && !b.running()
@@ -686,12 +685,7 @@ fn batch_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
         Action::None => {}
         Action::ChooseFolder => {
             app.clean = std::mem::take(st);
-            app.pick_clean_folder(false);
-            *st = std::mem::take(&mut app.clean);
-        }
-        Action::ChooseOut => {
-            app.clean = std::mem::take(st);
-            app.pick_clean_folder(true);
+            app.pick_clean_folder();
             *st = std::mem::take(&mut app.clean);
         }
         Action::Start => {

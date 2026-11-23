@@ -34,7 +34,7 @@ pub(crate) fn specs() -> Vec<CommandSpec> {
             .params(r#"{"path": string (a PDF), "out": string (the PDF written), "password"?: string, "model"?: string, "remove"?: [string] (object ids from clean.scan to remove as well), "keep"?: [string] (object ids to keep although the model would remove them)}"#)
             .pure(),
         CommandSpec::new("clean.folder", "Clean a Folder of PDFs", "Design › Watermark › Remove Watermarks", folder)
-            .params(r#"{"dir": string (a folder of PDFs), "out"?: string (folder written, default: beside it, named <dir>-clean), "subfolders"?: bool (default true), "password"?: string, "model"?: string}"#)
+            .params(r#"{"dir": string (a folder of PDFs; each clean copy is written beside its PDF, named <name>-clean.pdf), "subfolders"?: bool (default true), "password"?: string, "model"?: string}"#)
             .pure(),
         CommandSpec::new("clean.openPdf", "Open PDF Without Watermarks", "Design › Watermark › Remove Watermarks", open_pdf)
             .params(r#"{"path": string (a PDF), "password"?: string, "model"?: string, "urls"?: "remove|unlink|keep" (default remove), "dropFlagged"?: bool (also drop text it is unsure of), "pageBreaks"?: bool (default true), "watermarks"?: [string], "content"?: [string], "limit"?: number (as clean.learn, for this call only)}"#)
@@ -223,38 +223,30 @@ impl FolderFile {
     }
 }
 
-/// Where `clean.folder` writes by default: a folder beside `dir`, named `<dir>-clean`.
-pub fn default_folder_out(dir: &str) -> String {
-    let d = std::path::Path::new(dir.trim_end_matches(['/', '\\']));
-    let name = d.file_name().map_or_else(|| "pdfs".to_string(), |n| n.to_string_lossy().into_owned());
-    d.with_file_name(format!("{name}-clean")).to_string_lossy().into_owned()
+/// The suffix a clean copy's name gets: `exam.pdf` is cleaned into `exam-clean.pdf`.
+const CLEAN_SUFFIX: &str = "-clean";
+
+/// Where the clean copy of `pdf` goes: beside it, named `<name>-clean.pdf`.
+pub fn clean_copy_path(pdf: &str) -> String {
+    let p = std::path::Path::new(pdf);
+    let stem = p.file_stem().map_or_else(|| "document".to_string(), |s| s.to_string_lossy().into_owned());
+    let ext = p.extension().map_or_else(|| "pdf".to_string(), |e| e.to_string_lossy().into_owned());
+    p.with_file_name(format!("{stem}{CLEAN_SUFFIX}.{ext}")).to_string_lossy().into_owned()
 }
 
-/// The PDFs in `dir` (and its subfolders when `subfolders`), each with the path it is written to
-/// under `out` (the same place relative to `out` as to `dir`), sorted. The output folder is not
-/// looked into, links to folders are not followed, and hidden files are left out.
-pub fn folder_jobs(dir: &str, out: &str, subfolders: bool) -> Result<Vec<(String, String)>, String> {
+/// The PDFs in `dir` (and its subfolders when `subfolders`), each with the path of its clean
+/// copy beside it ([`clean_copy_path`]), sorted. Clean copies from an earlier run are not cleaned
+/// again, links to folders are not followed, and hidden files are left out.
+pub fn folder_jobs(dir: &str, subfolders: bool) -> Result<Vec<(String, String)>, String> {
     use std::path::{Path, PathBuf};
     crate::file_access::check_read(dir)?;
-    crate::file_access::check_write(out)?;
     let root = Path::new(dir);
     if !root.is_dir() {
         return Err(format!("{dir} is not a folder"));
     }
-    let out_root = Path::new(out);
-    let same = |a: &Path, b: &Path| match (a.canonicalize(), b.canonicalize()) {
-        (Ok(a), Ok(b)) => a == b,
-        _ => a == b,
-    };
-    if same(root, out_root) {
-        return Err("the clean copies need a folder of their own: choose another output folder".into());
-    }
     let mut found: Vec<PathBuf> = Vec::new();
     let mut todo: Vec<(PathBuf, usize)> = vec![(root.to_path_buf(), 0)];
     while let Some((d, depth)) = todo.pop() {
-        if same(&d, out_root) {
-            continue;
-        }
         let entries = std::fs::read_dir(&d).map_err(|e| format!("{}: {e}", d.display()))?;
         for e in entries.flatten() {
             let name = e.file_name().to_string_lossy().into_owned();
@@ -263,11 +255,14 @@ pub fn folder_jobs(dir: &str, out: &str, subfolders: bool) -> Result<Vec<(String
             }
             let Ok(kind) = e.file_type() else { continue };
             let path = e.path();
+            let named = Path::new(&name);
+            let is_pdf = named.extension().is_some_and(|x| x.eq_ignore_ascii_case("pdf"));
+            let is_copy = named.file_stem().is_some_and(|s| s.to_string_lossy().to_lowercase().ends_with(CLEAN_SUFFIX));
             if kind.is_dir() {
                 if subfolders && depth < MAX_FOLDER_DEPTH {
                     todo.push((path, depth + 1));
                 }
-            } else if Path::new(&name).extension().is_some_and(|x| x.eq_ignore_ascii_case("pdf")) && (kind.is_file() || path.is_file()) {
+            } else if is_pdf && !is_copy && (kind.is_file() || path.is_file()) {
                 found.push(path);
                 if found.len() > MAX_FOLDER_FILES {
                     return Err(format!("{dir} has more than {MAX_FOLDER_FILES} PDFs: clean it a part at a time"));
@@ -279,8 +274,9 @@ pub fn folder_jobs(dir: &str, out: &str, subfolders: bool) -> Result<Vec<(String
     Ok(found
         .into_iter()
         .map(|f| {
-            let rel = f.strip_prefix(root).map_or_else(|_| PathBuf::from(f.file_name().unwrap_or_default()), Path::to_path_buf);
-            (f.to_string_lossy().into_owned(), out_root.join(rel).to_string_lossy().into_owned())
+            let input = f.to_string_lossy().into_owned();
+            let output = clean_copy_path(&input);
+            (input, output)
         })
         .collect())
 }
@@ -360,16 +356,14 @@ pub fn clean_folder_files(
 /// `clean.folder`: clean every PDF in a folder with what the model has learned.
 fn folder(_: &mut Session, v: &Value) -> CmdResult {
     let dir = p::req_str(v, "dir")?;
-    let out = p::str(v, "out").filter(|o| !o.is_empty()).map_or_else(|| default_folder_out(dir), str::to_string);
     let subfolders = v.get("subfolders").and_then(Value::as_bool).unwrap_or(true);
-    let jobs = folder_jobs(dir, &out, subfolders).map_err(CmdError::Failed)?;
+    let jobs = folder_jobs(dir, subfolders).map_err(CmdError::Failed)?;
     let model = p::str(v, "model");
     let never = std::sync::atomic::AtomicBool::new(false);
     let files = clean_folder_files(&jobs, model, p::str(v, "password"), &never, &|_| {}).map_err(CmdError::Failed)?;
     let count = |f: &dyn Fn(&FolderFile) -> bool| files.iter().filter(|x| f(x)).count();
     Ok(json!({
         "dir": dir,
-        "out": out,
         "pdfs": files.len(),
         "cleaned": count(&|f| f.error.is_empty()),
         "needCheck": count(&|f| f.error.is_empty() && f.unsure > 0),
