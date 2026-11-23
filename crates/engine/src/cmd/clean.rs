@@ -159,10 +159,7 @@ fn learn(_: &mut Session, v: &Value) -> CmdResult {
     let mut model = model(v)?;
     let (_, pages) = read_pdf(v)?;
     let (learned, missing) = teach(&mut model, &pages, v)?;
-    if let Some(dir) = std::path::Path::new(&model_path).parent().filter(|d| !d.as_os_str().is_empty()) {
-        std::fs::create_dir_all(dir).map_err(|e| CmdError::Failed(format!("{}: {e}", dir.display())))?;
-    }
-    std::fs::write(&model_path, model.to_json()).map_err(|e| CmdError::Failed(format!("{model_path}: {e}")))?;
+    crate::io::write_file(&model_path, model.to_json().as_bytes()).map_err(CmdError::Failed)?;
     Ok(json!({"learned": learned, "examples": model.examples.len(), "model": model_path, "notFound": missing}))
 }
 
