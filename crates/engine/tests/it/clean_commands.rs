@@ -146,3 +146,16 @@ fn a_saved_pdf_loses_what_was_picked_and_keeps_what_was_kept() {
     assert_eq!(pages(object_ids(&after, "Licensed copy")), [1, 3]);
     assert!(pages(object_ids(&after, "Page ")).len() == 3, "the body text stays on every page");
 }
+
+#[test]
+fn a_folder_is_cleaned_into_a_folder_beside_it_with_its_subfolders_and_the_originals_kept() {
+    let base = scratch("folder");
+    let dir = base.join("papers");
+    std::fs::create_dir_all(dir.join("term 2")).unwrap();
+    let a = write_pdf(&dir, "a.pdf", "Alice Moyo");
+    write_pdf(&dir.join("term 2"), "b.PDF", "Baraka Juma");
+    std::fs::write(dir.join("notes.txt"), "not a pdf").unwrap();
+    let dir_s = dir.to_string_lossy().into_owned();
+    let mut s = Session::new(Document::new());
+
+    let r = s.run("clean.folder", &json!({"dir": dir_s})).unwrap();
