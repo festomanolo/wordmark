@@ -358,6 +358,26 @@ pub fn clean_folder_files(
 
 /// `clean.folder`: clean every PDF in a folder with what the model has learned.
 fn folder(_: &mut Session, v: &Value) -> CmdResult {
+    let dir = p::req_str(v, "dir")?;
+    let out = p::str(v, "out").filter(|o| !o.is_empty()).map_or_else(|| default_folder_out(dir), str::to_string);
+    let subfolders = v.get("subfolders").and_then(Value::as_bool).unwrap_or(true);
+    let jobs = folder_jobs(dir, &out, subfolders).map_err(CmdError::Failed)?;
+    let model = p::str(v, "model");
+    let never = std::sync::atomic::AtomicBool::new(false);
+    let files = clean_folder_files(&jobs, model, p::str(v, "password"), &never, &|_| {}).map_err(CmdError::Failed)?;
+    let count = |f: &dyn Fn(&FolderFile) -> bool| files.iter().filter(|x| f(x)).count();
+    Ok(json!({
+        "dir": dir,
+        "out": out,
+        "pdfs": files.len(),
+        "cleaned": count(&|f| f.error.is_empty()),
+        "needCheck": count(&|f| f.error.is_empty() && f.unsure > 0),
+        "failed": count(&|f| !f.error.is_empty()),
+        "removed": files.iter().map(|f| f.removed).sum::<usize>(),
+        "files": files.iter().map(FolderFile::to_json).collect::<Vec<_>>(),
+    }))
+}
+
 /// The largest preview side (pixels).
 const MAX_PREVIEW_SIDE: u32 = 2400;
 
