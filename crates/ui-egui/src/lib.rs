@@ -414,7 +414,7 @@ pub struct WordApp {
     pub canvas: canvas::CanvasState,
     /// The Restrict Editing pane (#412).
     pub(crate) restrict: restrict_pane::RestrictPane,
-    /// The Remove Watermarks pane, for the whole app (it is not kept per window).
+    /// The Remove Watermarks pane: each window has its own, like Restrict Editing.
     pub(crate) clean: clean_pane::CleanPane,
     /// The language-aware spelling and grammar task pane.
     pub spelling_review: Option<proofing_pane::SpellingForm>,
