@@ -65,7 +65,7 @@ const LINES: [&str; 3] = ["Answer all questions", "Show your working clearly", "
 /// A logo pasted over the middle of the scan.
 const LOGO: &str = "q 224 0 0 31 186 377 cm /Stamp Do Q";
 
-fn find<'a>(s: &'a Scan, page: usize, kind: Kind, f: impl Fn(&PageObject) -> bool) -> &'a PageObject {
+fn find(s: &Scan, page: usize, kind: Kind, f: impl Fn(&PageObject) -> bool) -> &PageObject {
     s.objects.iter().find(|o| o.page == page && o.kind == kind && f(o)).unwrap_or_else(|| panic!("no {kind:?} on page {page}: {:#?}", s.objects))
 }
 
