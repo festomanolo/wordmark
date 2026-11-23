@@ -371,8 +371,7 @@ fn page_preview(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
                 failed = Some(e);
                 egui::ColorImage::filled([1, 1], egui::Color32::TRANSPARENT)
             }
-        }
-    });
+        });
     if let Some(e) = failed {
         app.status(e.clone());
         st.say(e, true);
