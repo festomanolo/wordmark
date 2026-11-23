@@ -247,9 +247,6 @@ pub fn folder_jobs(dir: &str, subfolders: bool) -> Result<Vec<(String, String)>,
     let mut found: Vec<PathBuf> = Vec::new();
     let mut todo: Vec<(PathBuf, usize)> = vec![(root.to_path_buf(), 0)];
     while let Some((d, depth)) = todo.pop() {
-        if same(&d, out_root) {
-            continue;
-        }
         let entries = std::fs::read_dir(&d).map_err(|e| format!("{}: {e}", d.display()))?;
         for e in entries.flatten() {
             let name = e.file_name().to_string_lossy().into_owned();
