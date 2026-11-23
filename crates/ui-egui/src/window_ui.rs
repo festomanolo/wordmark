@@ -138,8 +138,6 @@ impl WordApp {
             // App-wide.
             // A close operation walks every window's documents, so it outlives a window swap.
             closing: _,
-            // The Remove Watermarks pane looks at a PDF, not at a window's document.
-            clean: _,
             session: _,
             services: _,
             host: _,
