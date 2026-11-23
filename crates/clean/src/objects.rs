@@ -700,12 +700,45 @@ fn group(found: &[Vec<Found>], spots: &[Vec<[f64; 4]>]) -> Groups {
     }
     // On how many pages the same thing sits in the same spot (a footer, a corner logo): the same
     // line elsewhere on another page is not a repeat.
-    let mut repeat_pages: Vec<usize> = vec![1; flat.len()];
-    for (n, &(p, i)) in flat.iter().enumerate() {
-        let r = root(&mut parent, n);
-        let pages: HashSet<usize> =
-            members[&r].iter().map(|&m| flat[m]).filter(|&(q, j)| q == p || same_spot(spots[p][i], spots[q][j])).map(|(q, _)| q).collect();
-        repeat_pages[n] = pages.len();
+    let repeat_pages = flat
+        .iter()
+        .enumerate()
+        .map(|(n, &(p, i))| {
+            members[&roots[n]]
+                .iter()
+                .map(|&m| flat[m])
+                .filter(|&(q, j)| q == p || same_spot(spots[p][i], spots[q][j]))
+                .map(|(q, _)| q)
+                .collect::<HashSet<_>>()
+                .len()
+        })
+        .collect();
+    Groups { flat, root: roots, name, repeat_pages }
+}
+
+/// What an object's page tells about it: the page's size, its own pictures (a scan) and links,
+/// and the body text size.
+struct PageFacts {
+    size: [f64; 2],
+    backgrounds: Vec<(usize, [f64; 4])>,
+    links: Vec<[f64; 4]>,
+    body: f64,
+}
+
+impl PageFacts {
+    fn of(found: &[Found], size: [f32; 2], body: f64) -> PageFacts {
+        let size = size.map(f64::from);
+        let page_area = size[0] * size[1];
+        PageFacts {
+            size,
+            backgrounds: found
+                .iter()
+                .filter(|g| g.obj.kind == Kind::Image && area(g.user_box) >= BACKGROUND_SHARE * page_area)
+                .map(|g| (g.order, g.user_box))
+                .collect(),
+            links: found.iter().filter(|g| g.obj.kind == Kind::Link).map(|g| g.user_box).collect(),
+            body,
+        }
     }
 
     for (n, &(p, i)) in flat.iter().enumerate() {
