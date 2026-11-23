@@ -295,8 +295,10 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
         Text::new(tl!("A new PDF without the ticked items. The rest of each page stays exactly as it was.")).show(ui);
         let learnable = model_path(app).is_some();
         Row::new().show(ui, |ui, _| {
-            if Button::new(tl!("Open Without Watermarks")).show(ui).clicked() {
-                open_cleaned(app, st);
+            if Button::new(tl!("Save Clean PDF…")).show(ui).clicked() {
+                app.clean = std::mem::take(st);
+                app.pick_clean_pdf_out();
+                *st = std::mem::take(&mut app.clean);
             }
             // Scanned again after learning, so the list shows what the detector now thinks.
             if Button::new(tl!("Learn Only")).enabled(learnable).show(ui).clicked() && learn(app, st) {
@@ -310,16 +312,194 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             Text::new(tl!("Picks can't be remembered here: they apply to this PDF only.")).show(ui);
         }
     });
+    Section::fixed(tl!("Or open as an editable document")).show(ui, |ui, _| {
+        Text::new(tl!("Rebuilds the PDF's text as paragraphs you can edit, without the ticked text. Pictures are not carried over.")).show(ui);
+        if !st.needs_ocr.is_empty() {
+            let pages = st.needs_ocr.iter().map(u64::to_string).collect::<Vec<_>>().join(", ");
+            Notice::new(
+                Tone::Warn,
+                crate::i18n::fmt(tl!("Pages {pages} are scanned pictures with no text: they come out empty. Save a clean PDF instead."), &[("pages", &pages)]),
+            )
+            .show(ui);
+        }
+        url_choice(ui, st);
+        Checkbox::new(Bind::bound(&mut st.drop_unsure)).label(tl!("Also remove unticked text it is unsure of")).show(ui);
+        if Button::new(tl!("Open as Editable Document")).show(ui).clicked() {
+            open_cleaned(app, st);
+        }
+    });
 }
 
-/// The candidates, each with a tick, its pages and how sure the detector is.
-fn candidate_list(ui: &mut Ui, st: &mut CleanPane) {
-    let rows: Vec<String> = st.candidates.iter().map(row_label).collect();
+fn file_name(path: &str) -> String {
+    std::path::Path::new(path).file_name().map_or(path.to_string(), |n| n.to_string_lossy().into_owned())
+}
+
+/// Previous / Next and which page is shown.
+fn page_nav(ui: &mut Ui, st: &mut CleanPane) {
+    let total = st.page_sizes.len();
+    Row::new().show(ui, |ui, _| {
+        if Button::new(tl!("Previous Page")).enabled(st.view_page > 0).show(ui).clicked() {
+            st.view_page = st.view_page.saturating_sub(1);
+        }
+        if Button::new(tl!("Next Page")).enabled(st.view_page + 1 < total).show(ui).clicked() {
+            st.view_page = (st.view_page + 1).min(total.saturating_sub(1));
+        }
+    });
+    Text::new(crate::i18n::fmt(tl!("Page {n} of {total}"), &[("n", &(st.view_page + 1).to_string()), ("total", &total.to_string())])).show(ui);
+}
+
+/// How a box on the preview is marked.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Mark {
+    /// Ticked: removed when saved.
+    Remove,
+    /// Not ticked, and the detector is not sure.
+    Unsure,
+    /// Not ticked.
+    Keep,
+}
+
+fn page_preview(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
+    let page = st.view_page.min(st.page_sizes.len().saturating_sub(1));
+    let [pw, ph] = st.page_sizes.get(page).copied().unwrap_or([1.0, 1.0]);
+    let (pw, ph) = (pw.max(1.0), ph.max(1.0));
+    let ppp = ui.ctx().pixels_per_point();
+    let side = ((ui.available_width() * ppp * (pw.max(ph) / pw) / PREVIEW_STEP).ceil() * PREVIEW_STEP).clamp(PREVIEW_STEP, PREVIEW_MAX) as u32;
+    let path = st.path.clone();
+    let mut failed = None;
+    let texture = TextureCache::texture(ui.ctx(), ("clean-preview", path.clone(), st.serial, page, side), || {
+        match wordcraft_engine::cmd::clean::page_preview(&path, None, page, side) {
+            Ok(pic) => egui::ColorImage::from_rgba_premultiplied([pic.width as usize, pic.height as usize], &pic.rgba),
+            Err(e) => {
+                failed = Some(e);
+                egui::ColorImage::filled([1, 1], egui::Color32::TRANSPARENT)
+            }
+        }
+    });
+    if let Some(e) = failed {
+        app.status(e.clone());
+        st.say(e, true);
+    }
+    let shown = (page + 1) as u64;
+    let mut boxes = Vec::new();
+    let mut marked = 0;
+    for (g, on) in st.groups.iter().zip(&st.picked) {
+        let mark = if *on {
+            Mark::Remove
+        } else if g.decision == "review" {
+            Mark::Unsure
+        } else {
+            Mark::Keep
+        };
+        for (p, b) in &g.boxes {
+            if *p == shown {
+                boxes.push(([b[0] / pw, b[1] / ph, b[2] / pw, b[3] / ph], mark));
+                marked += usize::from(mark == Mark::Remove);
+            }
+        }
+    }
+    let label = crate::i18n::fmt(
+        tl!("Page {n}: {marked} items to remove"),
+        &[("n", &shown.to_string()), ("marked", &marked.to_string())],
+    );
+    PagePreview::new(label, texture, ph / pw, boxes).show(ui);
+}
+
+/// A page of the PDF with a box round each thing found on it: crossed where it is removed,
+/// dashed where the detector is not sure, thin where it is kept. The marks differ in shape as
+/// well as colour.
+#[derive(Component, Props)]
+struct PagePreview {
+    #[common]
+    common: Common,
+    texture: egui::TextureId,
+    /// Height over width.
+    aspect: f32,
+    /// Boxes as shares of the page `[x0 y0 x1 y1]`, each with its mark.
+    boxes: Vec<([f32; 4], Mark)>,
+}
+
+impl PagePreview {
+    fn new(label: impl Into<Label>, texture: egui::TextureId, aspect: f32, boxes: Vec<([f32; 4], Mark)>) -> Self {
+        PagePreview { common: Common::new(), texture, aspect, boxes }.label(label)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, ComponentStyle)]
+struct PagePreviewStyle {
+    #[style(metrics)]
+    metrics: Metrics,
+    frame: StyleColor,
+    remove: StyleColor,
+    unsure: StyleColor,
+    keep: StyleColor,
+}
+
+impl Component for PagePreview {
+    const ROLE: Role = Role::IMAGE;
+    const PARTS: bool = false;
+    const STOPS: bool = false;
+    const INPUT: Input = Input::Display;
+    const SHOWS_LABEL: bool = false;
+    const OVERLAYS: bool = false;
+    type Style = PagePreviewStyle;
+    type Output = egui::Response;
+
+    fn style(cx: &StyleCx<'_>, _: PagePreviewStyleKey) -> PagePreviewStyle {
+        let c = &cx.tokens.color;
+        PagePreviewStyle {
+            metrics: Metrics::new(),
+            frame: cx.color(c.line.frame),
+            remove: cx.color(c.status.bad.solid),
+            unsure: cx.color(c.status.warn.solid),
+            keep: cx.color(c.accent.solid),
+        }
+    }
+
+    fn measure(&mut self, cx: &MeasureCx<'_, Self>) -> egui::Vec2 {
+        let w = cx.room.filter(|w| w.is_finite() && *w > 0.0).unwrap_or(280.0);
+        egui::vec2(w, w * self.aspect)
+    }
+
+    fn sense(&self) -> Sense {
+        Sense::empty()
+    }
+
+    fn paint(&mut self, ui: &mut PaintUi<'_>, cx: &Cx<'_, Self>) {
+        let style = &cx.style;
+        let r = cx.content_rect;
+        let draw = ui.draw();
+        draw.texture(r, self.texture, Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)));
+        draw.stroke(&PaintShape::Rect(r, CornerRadius::ZERO), StrokeWidth::Hairline, style.frame);
+        let at = |x: f32, y: f32| Pos2::new(r.min.x + x * r.width(), r.min.y + y * r.height());
+        for (b, mark) in &self.boxes {
+            let bx = Rect::from_min_max(at(b[0], b[1]), at(b[2], b[3])).expand(2.0).intersect(r);
+            let corners = [bx.left_top(), bx.right_top(), bx.right_bottom(), bx.left_bottom(), bx.left_top()];
+            match mark {
+                Mark::Remove => {
+                    draw.stroke(&PaintShape::Rect(bx, CornerRadius::ZERO), StrokeWidth::Thick, style.remove);
+                    draw.stroke(&PaintShape::Path(vec![bx.left_top(), bx.right_bottom()]), StrokeWidth::Thin, style.remove);
+                    draw.stroke(&PaintShape::Path(vec![bx.right_top(), bx.left_bottom()]), StrokeWidth::Thin, style.remove);
+                }
+                Mark::Unsure => draw.dashed(&corners, draw.dashes(), StrokeWidth::Medium, style.unsure),
+                Mark::Keep => draw.stroke(&PaintShape::Rect(bx, CornerRadius::ZERO), StrokeWidth::Hairline, style.keep),
+            }
+        }
+    }
+
+    fn finish(self, cx: Cx<'_, Self>) -> egui::Response {
+        cx.response.clone()
+    }
+}
+
+/// The groups, each with a tick, what it is and where.
+fn group_list(ui: &mut Ui, st: &mut CleanPane) {
+    let rows: Vec<String> = st.groups.iter().map(|g| row_label(g, &st.page_sizes)).collect();
     let positions: Vec<usize> = (0..rows.len()).collect();
     let source = keyed(&positions, |at: &usize| *at);
     let columns = vec![ColumnSpec::toggle(CHECK, Label::Empty, ToggleColumn::default()), ColumnSpec::new(TEXT, Label::Empty, ColumnWidth::Content)];
     let picked = &mut st.picked;
-    let out = List::<usize>::new(tl!("Tick the watermarks"))
+    let out = List::<usize>::new(tl!("Tick what to remove"))
         .select(SelectMode::Single)
         .space(SpaceAction::ToggleCell)
         .header(false)
