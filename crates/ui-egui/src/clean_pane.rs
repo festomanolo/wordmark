@@ -710,6 +710,7 @@ fn batch_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             scan(app, input);
             *st = std::mem::take(&mut app.clean);
             st.save_target = Some(output);
+            st.show_pages = true;
         }
     }
 }
