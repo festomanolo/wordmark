@@ -765,7 +765,7 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
                 // A picture pasted over a scan is the commonest stamp; text over a full-page
                 // picture is as often a designed page's real text, so it only leans.
                 if over_scan && !f.invisible {
-                    add(&mut z, &mut why, 3.5, "drawn over the page picture");
+                    add(&mut z, &mut why, if f.obj.kind == Kind::Text { 0.5 } else { 3.5 }, "drawn over the page picture");
                 }
                 if repeats {
                     add(&mut z, &mut why, 2.0, "on most pages");
@@ -818,7 +818,7 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
         obj.score = score;
         obj.decision = model.decide(score);
         obj.reasons = why.into_iter().map(str::to_string).collect();
-        obj.key = ks.into_iter().next().unwrap_or_default();
+        obj.keys = ks;
         obj.group = group_first.get(&r).cloned().unwrap_or_default();
     }
 }
@@ -848,7 +848,7 @@ pub fn scan(bytes: &[u8], password: Option<&str>, model: &Model) -> Result<Scan,
 /// The keys under which `ids` (from [`scan`] of the same file) are learned.
 pub fn keys_of(scan: &Scan, ids: &[String]) -> Vec<String> {
     let want: HashSet<&str> = ids.iter().map(String::as_str).collect();
-    let mut out: Vec<String> = scan.objects.iter().filter(|o| want.contains(o.id.as_str())).map(|o| o.key.clone()).filter(|k| !k.is_empty()).collect();
+    let mut out: Vec<String> = scan.objects.iter().filter(|o| want.contains(o.id.as_str())).flat_map(|o| o.keys.iter().cloned()).collect();
     out.sort();
     out.dedup();
     out
