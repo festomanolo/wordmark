@@ -1,6 +1,8 @@
 //! Cleaning behaviour, on PDFs written here (our own fixtures: text in the standard Helvetica
 //! font, no embedded data).
 
+mod objects;
+
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
