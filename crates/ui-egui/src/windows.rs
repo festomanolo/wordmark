@@ -475,6 +475,11 @@ impl WordApp {
         title(&name, self.session.dirty)
     }
 
+    /// The drawn window's document name ("Document1", "Report.docx"), without the unsaved mark.
+    pub(crate) fn document_title(&self) -> String {
+        self.window_menu().title(self.windows.shown).map(str::to_string).unwrap_or_else(|| self.title_stem())
+    }
+
     /// The title of window `id` as `menu` gives it; `WordCraft` for a window with no document.
     fn title_in(menu: &WindowMenu, id: WindowId) -> String {
         match menu.get(id).filter(|e| !e.title.is_empty()) {
