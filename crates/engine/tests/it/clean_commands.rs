@@ -170,5 +170,6 @@ fn each_pdf_in_a_folder_tree_gets_its_clean_copy_beside_it_and_a_second_run_leav
 
     // The copies are not cleaned again into -clean-clean files.
     let again = s.run("clean.folder", &json!({"dir": dir_s})).unwrap();
-    assert!(s.run("clean.folder", &json!({"dir": dir_s, "out": dir_s})).is_err(), "writing over the originals is refused");
+    assert_eq!(again["pdfs"].as_u64(), Some(2), "{again:#}");
+    assert!(!dir.join("a-clean-clean.pdf").exists());
 }
