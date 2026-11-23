@@ -662,7 +662,7 @@ fn group(found: &[Vec<Found>], spots: &[Vec<[f64; 4]>]) -> Groups {
     for (n, &(p, i)) in flat.iter().enumerate() {
         let f = &found[p][i];
         let ident = match f.obj.kind {
-            Kind::Text => text_key(f),
+            Kind::Text => (!f.obj.text.trim().is_empty()).then(|| normalize(&f.obj.text)),
             Kind::Link => f.uri.as_deref().map(link_host),
             Kind::Image | Kind::Graphic => Some(format!("{:016x}", f.image_hash)),
             Kind::Stamp => Some(normalize(&f.obj.text)),
