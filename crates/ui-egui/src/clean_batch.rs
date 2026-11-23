@@ -70,7 +70,7 @@ impl Batch {
         if self.out.is_empty() { wordcraft_engine::cmd::clean::default_folder_out(&self.dir) } else { self.out.clone() }
     }
 
-    fn running(&self) -> bool {
+    pub fn running(&self) -> bool {
         self.run.as_ref().is_some_and(|r| r.lock().is_ok_and(|r| !r.finished))
     }
 }
