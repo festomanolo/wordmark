@@ -72,6 +72,11 @@ pub struct Model {
     pub watermark_texts: Vec<String>,
     /// Normalised texts marked as content.
     pub content_texts: Vec<String>,
+    /// Page objects marked as watermarks, by [`crate::objects::PageObject::key`]: what a picture
+    /// holds or where it sits, what a link points to.
+    pub watermark_objects: Vec<String>,
+    /// Page objects marked as content.
+    pub content_objects: Vec<String>,
 }
 
 impl Default for Model {
