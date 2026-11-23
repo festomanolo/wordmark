@@ -756,8 +756,11 @@ fn document_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
                     app.status(msg.clone());
                     msg
                 }
-                Err(e) => st.say(e, true),
-            }
+                Err(e) => e,
+            };
+        }
+        if !st.doc_message.is_empty() {
+            Text::new(st.doc_message.clone()).show(ui);
         }
     });
 }
