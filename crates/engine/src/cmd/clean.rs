@@ -364,7 +364,6 @@ fn folder(_: &mut Session, v: &Value) -> CmdResult {
     let count = |f: &dyn Fn(&FolderFile) -> bool| files.iter().filter(|x| f(x)).count();
     Ok(json!({
         "dir": dir,
-        "out": out,
         "pdfs": files.len(),
         "cleaned": count(&|f| f.error.is_empty()),
         "needCheck": count(&|f| f.error.is_empty() && f.unsure > 0),
