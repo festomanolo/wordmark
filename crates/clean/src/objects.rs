@@ -742,46 +742,24 @@ impl PageFacts {
     }
 }
 
-    for (n, &(p, i)) in flat.iter().enumerate() {
-        let r = root(&mut parent, n);
-        let pages_with = repeat_pages[n];
-        let page_area = f64::from(sizes[p][0]) * f64::from(sizes[p][1]);
-        let s = spots[p][i];
-        // The page's own pictures (a scan) and the links on it, from the same page.
-        let (backgrounds, links): (Vec<(usize, [f64; 4])>, Vec<[f64; 4]>) = {
-            let fs = &found[p];
-            (
-                fs.iter()
-                    .filter(|g| g.obj.kind == Kind::Image && area(g.user_box) >= BACKGROUND_SHARE * page_area)
-                    .map(|g| (g.order, g.user_box))
-                    .collect(),
-                fs.iter().filter(|g| g.obj.kind == Kind::Link).map(|g| g.user_box).collect(),
-            )
-        };
-        let f = &found[p][i];
-        let mut z: f32;
-        let mut why: Vec<&'static str> = Vec::new();
-        let b = f.obj.bbox.map(f64::from);
-        let [w, h] = sizes[p].map(f64::from);
-        let edge = b[3] <= EDGE_BAND * h || b[1] >= (1.0 - EDGE_BAND) * h || b[2] <= SIDE_BAND * w || b[0] >= (1.0 - SIDE_BAND) * w;
-        let centred = (s[0] - 0.5).abs() < 0.15 && (s[1] - 0.5).abs() < 0.15;
-        let repeats = pages_with >= 2 && pages_with * 2 >= n_pages;
-        match f.obj.kind {
-            Kind::Link => {
-                if f.internal_link {
-                    z = -4.0;
-                    why.push("internal link");
-                } else {
-                    // Links out of the document are what "remove links" means.
-                    z = 1.5;
-                    why.push("web link");
-                    if edge {
-                        add(&mut z, &mut why, 1.0, "page margin");
-                    }
-                    if repeats {
-                        add(&mut z, &mut why, 1.0, "on most pages");
-                    }
-                }
+/// How much `f` looks like a watermark before learning (log-odds), with the signals that said
+/// so. `s` is its spot; `repeats`: it sits in the same spot on most pages.
+fn weigh(f: &Found, s: [f64; 4], page: &PageFacts, repeats: bool) -> (f32, Vec<&'static str>) {
+    let mut why: Vec<&'static str> = Vec::new();
+    let b = f.obj.bbox.map(f64::from);
+    let [w, h] = page.size;
+    let edge = b[3] <= EDGE_BAND * h || b[1] >= (1.0 - EDGE_BAND) * h || b[2] <= SIDE_BAND * w || b[0] >= (1.0 - SIDE_BAND) * w;
+    let z = match f.obj.kind {
+        Kind::Link if f.internal_link => {
+            why.push("internal link");
+            -4.0
+        }
+        Kind::Link => {
+            // Links out of the document are what "remove links" means.
+            let mut z = 1.5;
+            why.push("web link");
+            if edge {
+                add(&mut z, &mut why, 1.0, "page margin");
             }
             Kind::Stamp => {
                 z = if f.font_size > 0.0 { 4.0 } else { 0.0 };
