@@ -59,8 +59,9 @@ pub(crate) struct Group {
     pub text: String,
     /// 1-based pages, ascending.
     pub pages: Vec<u64>,
+    /// Its box on each of those pages (points, top-left origin), with the page.
+    pub boxes: Vec<(u64, [f32; 4])>,
     pub score: f64,
-    /// `remove`, `review` or `keep`: what the model would do.
     pub decision: String,
 }
 
@@ -73,8 +74,14 @@ pub(crate) struct CleanPane {
     pub path: String,
     /// Its pages, once scanned.
     pub pages: u64,
-    /// Pages that are pictures with no text (OCR needed).
+    /// Each page's size as shown, points.
+    pub page_sizes: Vec<[f32; 2]>,
+    /// Pages that are pictures with no text (OCR needed for an editable document).
     pub needs_ocr: Vec<u64>,
+    pub groups: Vec<Group>,
+    /// Ticked for removal, by group.
+    pub picked: Vec<bool>,
+    /// Texts the text reader found, for the editable document.
     pub candidates: Vec<Candidate>,
     /// Ticked as a watermark, by candidate.
     pub picked: Vec<bool>,
