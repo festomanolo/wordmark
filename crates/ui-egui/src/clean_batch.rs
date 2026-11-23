@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 use craft::theme::variant::Tone;
 use craft::ui::buttons::Button;
 use craft::ui::choice::Checkbox;
-use craft::ui::contract::{Bind, Props as _, Show as _, ShowContainer as _};
+use craft::ui::contract::{Bind, Props as _, Show as _, ShowContainer as _, Sizing};
 use craft::ui::display::{Progress, Text};
 use craft::ui::layout_components::Row;
 use craft::ui::notices::Notice;
