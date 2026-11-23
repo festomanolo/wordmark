@@ -51,8 +51,8 @@ app only flash the window). Cleaning a folder needs the desktop app.
 
 **Open as Editable Document** instead rebuilds the PDF's text as paragraphs, without the ticked
 text, with web addresses removed, unlinked or kept as chosen. Pictures are not carried over, so a
-scanned PDF comes out empty: save a clean PDF for those. **Clean This Document** cleans the
-document that is open: its watermark, learned watermark texts, links and web addresses. Undo puts
+scanned PDF comes out empty: save a clean PDF for those. **Clean Document1** (the button names the document) cleans the
+document open in the editor (not a PDF): its watermark, learned watermark texts, links and web addresses. Undo puts
 them back.
 
 Agents get the same results through the commands the pane runs:
