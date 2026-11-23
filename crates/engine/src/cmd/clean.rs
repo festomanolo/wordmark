@@ -240,7 +240,9 @@ fn learn(_: &mut Session, v: &Value) -> CmdResult {
     let (marked_objects, kept_objects) = (texts(v, "watermarkObjects")?, texts(v, "contentObjects")?);
     let some_texts = !(texts(v, "watermarks")?.is_empty() && texts(v, "content")?.is_empty());
     if !some_texts && marked_objects.is_empty() && kept_objects.is_empty() {
-        return Err(CmdError::Params("name at least one text in `watermarks` or `content`, or an object in `watermarkObjects` or `contentObjects`".into()));
+        return Err(CmdError::Params(
+            "name at least one text in `watermarks` or `content`, or an object in `watermarkObjects` or `contentObjects`".into(),
+        ));
     }
     crate::file_access::check_write(&model_path).map_err(CmdError::Failed)?;
     let mut model = model(v)?;
