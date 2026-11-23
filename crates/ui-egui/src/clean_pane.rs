@@ -197,6 +197,7 @@ fn base_params(app: &WordApp, st: &CleanPane) -> Value {
     p
 }
 
+/// The ids of the ticked groups, and of the unticked ones the model would remove or was unsure
 /// The ids of the ticked groups, and of the unticked ones the model would remove (the person
 /// overruled it).
 fn picked_ids(st: &CleanPane) -> (Vec<String>, Vec<String>) {
