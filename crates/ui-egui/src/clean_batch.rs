@@ -232,6 +232,10 @@ pub(crate) fn checking(ui: &mut Ui, b: &Batch, input: &str) -> Action {
                 action = Action::Back;
             }
         });
+    });
+    action
+}
+
 /// How far the run has got, and what it left for a person.
 fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
     let run = b.run.as_ref()?;
