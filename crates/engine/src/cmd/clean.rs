@@ -234,10 +234,10 @@ pub fn clean_copy_path(pdf: &str) -> String {
     p.with_file_name(format!("{stem}{CLEAN_SUFFIX}.{ext}")).to_string_lossy().into_owned()
 }
 
-/// The PDFs in `dir` (and its subfolders when `subfolders`), each with the path it is written to
-/// under `out` (the same place relative to `out` as to `dir`), sorted. The output folder is not
-/// looked into, links to folders are not followed, and hidden files are left out.
-pub fn folder_jobs(dir: &str, out: &str, subfolders: bool) -> Result<Vec<(String, String)>, String> {
+/// The PDFs in `dir` (and its subfolders when `subfolders`), each with the path of its clean
+/// copy beside it ([`clean_copy_path`]), sorted. Clean copies from an earlier run are not cleaned
+/// again, links to folders are not followed, and hidden files are left out.
+pub fn folder_jobs(dir: &str, subfolders: bool) -> Result<Vec<(String, String)>, String> {
     use std::path::{Path, PathBuf};
     crate::file_access::check_read(dir)?;
     crate::file_access::check_write(out)?;
