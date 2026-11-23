@@ -162,8 +162,7 @@ fn groups(objects: &[Value]) -> Vec<Group> {
             });
             out.len() - 1
         });
-            }
-        };
+        let Some(g) = out.get_mut(at) else { continue };
         g.ids.push(id.to_string());
         if !g.pages.contains(&page) {
             g.pages.push(page);
