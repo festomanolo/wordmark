@@ -745,10 +745,14 @@ fn document_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
                 Ok(r) => {
                     let n = r["learnedTextRemoved"].as_u64().unwrap_or(0) + u64::from(r["watermarkRemoved"].as_bool().unwrap_or(false));
                     let links = r["linksUnlinked"].as_u64().unwrap_or(0) + r["urlsRemoved"].as_u64().unwrap_or(0);
-                    let msg = crate::i18n::fmt(
-                        tl!("Watermarks removed: {n}. Links and web addresses removed: {links}."),
-                        &[("n", &n.to_string()), ("links", &links.to_string())],
-                    );
+                    let msg = if n + links == 0 {
+                        crate::i18n::fmt(tl!("Nothing to clean in {name}: no watermark, learned watermark text, links or web addresses."), &[("name", &name)])
+                    } else {
+                        crate::i18n::fmt(
+                            tl!("Watermarks removed: {n}. Links and web addresses removed: {links}."),
+                            &[("n", &n.to_string()), ("links", &links.to_string())],
+                        )
+                    };
                     app.status(msg.clone());
                     st.say(msg, false);
                 }
