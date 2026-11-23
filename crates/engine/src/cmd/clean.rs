@@ -262,7 +262,7 @@ pub fn folder_jobs(dir: &str, subfolders: bool) -> Result<Vec<(String, String)>,
                 if subfolders && depth < MAX_FOLDER_DEPTH {
                     todo.push((path, depth + 1));
                 }
-            } else if Path::new(&name).extension().is_some_and(|x| x.eq_ignore_ascii_case("pdf")) && (kind.is_file() || path.is_file()) {
+            } else if is_pdf && !is_copy && (kind.is_file() || path.is_file()) {
                 found.push(path);
                 if found.len() > MAX_FOLDER_FILES {
                     return Err(format!("{dir} has more than {MAX_FOLDER_FILES} PDFs: clean it a part at a time"));
