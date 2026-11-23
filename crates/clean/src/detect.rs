@@ -90,6 +90,8 @@ impl Default for Model {
             examples: Vec::new(),
             watermark_texts: Vec::new(),
             content_texts: Vec::new(),
+            watermark_objects: Vec::new(),
+            content_objects: Vec::new(),
         }
     }
 }
