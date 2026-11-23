@@ -102,6 +102,7 @@ pub(crate) struct CleanPane {
     pub doc_message: String,
     /// Bring the page preview into view on the next frame (a file opened from the folder list,
     /// which sits above it).
+    pub show_pages: bool,
 }
 
 impl CleanPane {
