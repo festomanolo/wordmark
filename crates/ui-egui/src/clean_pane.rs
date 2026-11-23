@@ -118,7 +118,8 @@ impl CleanPane {
             .unwrap_or_default();
         self.groups = groups(r["objects"].as_array().map(Vec::as_slice).unwrap_or_default());
         self.picked = self.groups.iter().map(|g| g.decision == "remove").collect();
-        self.view_page = self.groups.iter().zip(&self.picked).find(|(_, on)| **on).and_then(|(g, _)| g.pages.first()).map_or(0, |p| p.saturating_sub(1) as usize);
+        self.view_page =
+            self.groups.iter().zip(&self.picked).find(|(_, on)| **on).and_then(|(g, _)| g.pages.first()).map_or(0, |p| p.saturating_sub(1) as usize);
         self.serial = self.serial.wrapping_add(1);
     }
 }
