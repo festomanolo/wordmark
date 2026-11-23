@@ -8303,7 +8303,7 @@ dependencies = [
  "png 0.18.1",
  "rayon",
  "thread_local",
- "vello_common",
+ "vello_common 0.2.0",
 ]
 
 [[package]]
