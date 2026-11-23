@@ -62,11 +62,6 @@ impl Default for Batch {
 }
 
 impl Batch {
-    /// The folder the copies go to.
-    pub fn out_dir(&self) -> String {
-        if self.out.is_empty() { wordcraft_engine::cmd::clean::default_folder_out(&self.dir) } else { self.out.clone() }
-    }
-
     pub fn running(&self) -> bool {
         self.run.as_ref().is_some_and(|r| r.lock().is_ok_and(|r| !r.finished))
     }
