@@ -150,7 +150,7 @@ fn groups(objects: &[Value]) -> Vec<Group> {
         let bbox = [0, 1, 2, 3].map(|i| b[i].as_f64().unwrap_or(0.0) as f32);
         let group = o["group"].as_str().unwrap_or(id).to_string();
         let score = o["score"].as_f64().unwrap_or(0.0);
-            Some(&i) => &mut out[i],
+        let at = *at.entry(group).or_insert_with(|| {
             None => {
                 at.insert(group, out.len());
                 out.push(Group {
