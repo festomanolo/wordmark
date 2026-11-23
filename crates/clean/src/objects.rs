@@ -834,6 +834,12 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
     // person marked it as content.
     let mut best: HashMap<String, f32> = HashMap::new();
     for o in found.iter().flatten().map(|f| &f.obj) {
+        let b = best.entry(o.group.clone()).or_insert(o.score);
+        *b = b.max(o.score);
+    }
+    for o in found.iter_mut().flatten().map(|f| &mut f.obj) {
+        if let Some(&b) = best.get(&o.group)
+            && b > o.score
 }
 
 /// Every object of the PDF's pages with how much it looks like a watermark. `password` opens an
