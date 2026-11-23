@@ -318,6 +318,26 @@ pub fn clean_folder_file(input: &str, output: &str, model: &Model, password: Opt
 }
 
 /// Clean every `(input, output)` of `jobs` with the model in `model_path` (or the starting
+/// model), a few files at once. `progress` is called as each file finishes, from a worker
+/// thread; once `cancel` is set no more files are started. Returns the files done, in `jobs`
+/// order. The file-access roots in force on the calling thread apply on the workers too.
+pub fn clean_folder_files(
+    jobs: &[(String, String)],
+    model_path: Option<&str>,
+    password: Option<&str>,
+    cancel: &std::sync::atomic::AtomicBool,
+    progress: &(dyn Fn(&FolderFile) + Sync),
+) -> Result<Vec<FolderFile>, String> {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let model = load_model(model_path)?;
+    let roots = crate::file_access::current();
+    let next = AtomicUsize::new(0);
+    let done: std::sync::Mutex<Vec<(usize, FolderFile)>> = std::sync::Mutex::new(Vec::with_capacity(jobs.len()));
+    let workers = std::thread::available_parallelism().map_or(2, usize::from).clamp(1, 4).min(jobs.len().max(1));
+    std::thread::scope(|s| {
+        for _ in 0..workers {
+            s.spawn(|| {
+                crate::file_access::confine(roots.as_ref(), || {
 /// The largest preview side (pixels).
 const MAX_PREVIEW_SIDE: u32 = 2400;
 
