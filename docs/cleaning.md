@@ -47,8 +47,9 @@ Agents get the same results through the commands the pane runs:
 
 | Command | Does |
 | --- | --- |
-| `clean.scan {path}` | lists the PDF's texts with `score` and `decision` |
-| `clean.learn {path, model, watermarks, content?}` | teaches the model and saves it |
+| `clean.scan {path}` | lists the PDF's texts (`candidates`) and the objects drawn on its pages (`objects`: `id`, `page`, `kind`, `bbox`, `text`, `group`, `score`, `decision`, `reasons`), with `pageSizes` |
+| `clean.learn {path, model, watermarks?, content?, watermarkObjects?, contentObjects?}` | teaches the model texts and objects (by id) and saves it |
+| `clean.savePdf {path, out, remove?, keep?}` | writes the PDF without what the model removes, plus the `remove` ids, less the `keep` ids |
 | `clean.openPdf {path, model?, watermarks?, content?, urls?, dropFlagged?}` | opens the PDF rebuilt without its watermarks |
 | `clean.document {model?, urls?}` | cleans the open document |
 
@@ -64,6 +65,23 @@ inside its roots.
 | .docx, .doc, .odt, .rtf, .html, .md… | The document's own watermark (Design › Watermark) is removed, along with paragraphs and phrases that read like a watermark someone marked, then links and web addresses. Body, tables, headers, footers and notes are all cleaned. |
 
 The output format is `--format`: docx by default, or odt, rtf, md, html, txt, pdf or json.
+
+## How a page object is judged
+
+`clean.scan`'s `objects` are scored from these signals (each object's `reasons` names the ones
+that applied):
+
+| Signal | Means |
+| --- | --- |
+| drawn over the page picture | a picture drawn after, and on top of, a picture that covers the page (a logo pasted on a scan). Text over such a picture only leans this way: a designed page's real text often sits on a background picture |
+| on most pages | the same thing in the same spot on at least half the pages |
+| page margin | in the top or bottom tenth, or the outer side strips |
+| under a link | overlaps a link area |
+| web link | a link to a web address (links within the document are kept) |
+| see-through, turned, pale, large, middle of the page | as for text spans below |
+| page picture | (against) covers 40% of the page or more: the page itself |
+| invisible text | (against) an OCR layer |
+| marked as a watermark / content before | what the model learned |
 
 ## How a span is judged
 
@@ -121,6 +139,9 @@ features of its pages are computed in parallel.
 - A scanned page with no text layer is a picture. Its words, and a watermark baked into the
   picture's pixels, are not read. The report lists those pages under `needs_ocr`, and `clean`
   warns about them. Run OCR on the file first; a scan with an OCR layer is read through that layer.
+- Saving a clean PDF removes whole objects. A watermark baked into a scan's pixels, or drawn
+  with vector paths, is not found; pictures and text inside a form XObject are removed with
+  their form, as one object.
 - A rebuilt PDF keeps its text, paragraphs and headings. Pictures, tables (read as lines of
   text), columns (read across, line by line) and fonts are not carried over yet.
 - Links in a PDF are not carried into the rebuilt document. Web addresses in its text are removed
