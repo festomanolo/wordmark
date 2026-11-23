@@ -255,6 +255,9 @@ pub fn folder_jobs(dir: &str, subfolders: bool) -> Result<Vec<(String, String)>,
             }
             let Ok(kind) = e.file_type() else { continue };
             let path = e.path();
+            let named = Path::new(&name);
+            let is_pdf = named.extension().is_some_and(|x| x.eq_ignore_ascii_case("pdf"));
+            let is_copy = named.file_stem().is_some_and(|s| s.to_string_lossy().to_lowercase().ends_with(CLEAN_SUFFIX));
             if kind.is_dir() {
                 if subfolders && depth < MAX_FOLDER_DEPTH {
                     todo.push((path, depth + 1));
