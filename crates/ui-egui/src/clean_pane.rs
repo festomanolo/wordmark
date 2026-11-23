@@ -276,6 +276,7 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     if st.path.is_empty() || st.page_sizes.is_empty() {
         return;
     }
+    // Only on the pass that draws: a measuring pass would use the request up unseen.
     if std::mem::take(&mut st.show_pages) {
         ui.scroll_to_cursor(Some(egui::Align::TOP));
     }
