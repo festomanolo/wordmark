@@ -286,6 +286,7 @@ impl WordApp {
         swap_fields!(w:
             canvas,
             restrict,
+            clean,
             spelling_review,
             status,
             announcement,
