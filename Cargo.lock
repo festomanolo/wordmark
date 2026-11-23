@@ -3858,6 +3858,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "hayro"
+version = "0.7.1"
+source = "git+https://github.com/storytold/craft-libs?rev=243d68e12d05e89122db6d154924bf1992e10d38#243d68e12d05e89122db6d154924bf1992e10d38"
+dependencies = [
+ "bytemuck",
+ "hayro-interpret",
+ "image",
+ "kurbo",
+ "log",
+ "pic-scale",
+ "vello_cpu 0.0.8",
+]
+
+[[package]]
 name = "hayro-ccitt"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
