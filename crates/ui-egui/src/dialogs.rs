@@ -57,7 +57,8 @@ fn route(app: &mut WordApp, name: &str, params: &Value, parent: Option<DialogId>
             app.restrict.open = true;
             None
         }
-        // So is Remove Watermarks; `path` opens it on that PDF, scanned.
+        // So is Remove Watermarks; `path` opens it on that PDF, scanned; `folder` (with `out`,
+        // `start`) sets the folder to clean, as Choose Folder… does, and `start` runs it.
         "removeWatermarks" => {
             app.clean.open = true;
             if let Some(path) = params.get("path").and_then(Value::as_str) {
