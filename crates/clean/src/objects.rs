@@ -740,6 +740,7 @@ impl PageFacts {
             body,
         }
     }
+}
 
     for (n, &(p, i)) in flat.iter().enumerate() {
         let r = root(&mut parent, n);
