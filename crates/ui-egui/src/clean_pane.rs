@@ -660,6 +660,9 @@ pub(crate) fn save_to(app: &mut WordApp, out: String) {
 
 /// Set the folder to clean (and where the copies go), as Choose Folder… does; `start` starts
 /// cleaning it. For automation (`ui.dialog {name: "removeWatermarks", folder}`).
+pub(crate) fn set_folder(app: &mut WordApp, folder: &str, out: Option<&str>, start: bool) {
+    let ctx = app.ctx.clone();
+    let model = model_path(app).filter(|m| std::path::Path::new(m).exists());
 /// The folder section, and what its buttons ask for.
 fn batch_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     use crate::clean_batch::Action;
