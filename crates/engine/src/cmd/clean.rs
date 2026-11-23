@@ -357,7 +357,7 @@ pub fn clean_folder_files(
 fn folder(_: &mut Session, v: &Value) -> CmdResult {
     let dir = p::req_str(v, "dir")?;
     let subfolders = v.get("subfolders").and_then(Value::as_bool).unwrap_or(true);
-    let jobs = folder_jobs(dir, &out, subfolders).map_err(CmdError::Failed)?;
+    let jobs = folder_jobs(dir, subfolders).map_err(CmdError::Failed)?;
     let model = p::str(v, "model");
     let never = std::sync::atomic::AtomicBool::new(false);
     let files = clean_folder_files(&jobs, model, p::str(v, "password"), &never, &|_| {}).map_err(CmdError::Failed)?;
