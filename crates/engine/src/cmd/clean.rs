@@ -104,10 +104,8 @@ fn scan(_: &mut Session, v: &Value) -> CmdResult {
     let model = model(v)?;
     let (path, pages) = read_pdf(v)?;
     let found = wordcraft_clean::candidates(&pages, &model, limit(v));
-    let candidates: Vec<Value> = found
-        .iter()
-        .map(|c| json!({"text": c.text, "pages": c.pages, "score": c.score, "decision": decision_name(model.decide(c.score))}))
-        .collect();
+    let candidates: Vec<Value> =
+        found.iter().map(|c| json!({"text": c.text, "pages": c.pages, "score": c.score, "decision": decision_name(model.decide(c.score))})).collect();
     Ok(json!({
         "path": path,
         "pages": pages.len(),
