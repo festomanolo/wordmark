@@ -114,14 +114,7 @@ impl CleanPane {
             .unwrap_or_default();
         self.candidates = r["candidates"]
             .as_array()
-            .map(|a| {
-                a.iter()
-                    .map(|c| Candidate {
-                        text: c["text"].as_str().unwrap_or_default().to_string(),
-                        decision: c["decision"].as_str().unwrap_or("keep").to_string(),
-                    })
-                    .collect()
-            })
+            .map(|a| a.iter().map(|c| Candidate { text: c["text"].as_str().unwrap_or_default().to_string() }).collect())
             .unwrap_or_default();
         self.groups = groups(r["objects"].as_array().map(Vec::as_slice).unwrap_or_default());
         self.picked = self.groups.iter().map(|g| g.decision == "remove").collect();
