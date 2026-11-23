@@ -220,6 +220,10 @@ pub(crate) fn checking(ui: &mut Ui, b: &Batch, input: &str) -> Action {
     Section::fixed(tl!("Checking a file from the folder")).show(ui, |ui, _| {
         Text::new(crate::i18n::fmt(tl!("{name}. Files left to check: {left}."), &[("name", &relative(&b.dir, input)), ("left", &left.to_string())]))
             .show(ui);
+        Row::new().show(ui, |ui, _| {
+            let at = files.iter().position(|(i, _)| i == input);
+            let next = files.iter().cycle().skip(at.map_or(0, |a| a + 1)).take(files.len()).find(|(i, _)| i != input && !b.checked.contains(i));
+            if Button::new(tl!("Next File")).enabled(next.is_some()).show(ui).clicked()
 /// How far the run has got, and what it left for a person.
 fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
     let run = b.run.as_ref()?;
