@@ -269,7 +269,7 @@ fn row_label(c: &Candidate) -> String {
         _ => tl!("content"),
     };
     let text: String = c.text.chars().take(80).collect();
-    format!("{text} · {pages} · {:.0}%, {verdict}", c.score * 100.0)
+    format!("{:.0}% {verdict} · {text} · {pages}", c.score * 100.0)
 }
 
 fn url_choice(ui: &mut Ui, st: &mut CleanPane) {
