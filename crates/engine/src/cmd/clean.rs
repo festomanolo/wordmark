@@ -33,6 +33,9 @@ pub(crate) fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("clean.savePdf", "Save PDF Without Watermarks", "Design › Watermark › Remove Watermarks", save_pdf)
             .params(r#"{"path": string (a PDF), "out": string (the PDF written), "password"?: string, "model"?: string, "remove"?: [string] (object ids from clean.scan to remove as well), "keep"?: [string] (object ids to keep although the model would remove them)}"#)
             .pure(),
+        CommandSpec::new("clean.folder", "Clean a Folder of PDFs", "Design › Watermark › Remove Watermarks", folder)
+            .params(r#"{"dir": string (a folder of PDFs), "out"?: string (folder written, default: beside it, named <dir>-clean), "subfolders"?: bool (default true), "password"?: string, "model"?: string}"#)
+            .pure(),
         CommandSpec::new("clean.openPdf", "Open PDF Without Watermarks", "Design › Watermark › Remove Watermarks", open_pdf)
             .params(r#"{"path": string (a PDF), "password"?: string, "model"?: string, "urls"?: "remove|unlink|keep" (default remove), "dropFlagged"?: bool (also drop text it is unsure of), "pageBreaks"?: bool (default true), "watermarks"?: [string], "content"?: [string], "limit"?: number (as clean.learn, for this call only)}"#)
             .pure(),
