@@ -863,7 +863,7 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
         obj.decision = model.decide(score);
         obj.reasons = why.into_iter().map(str::to_string).collect();
         obj.keys = ks;
-        obj.group = group_first.get(&r).cloned().unwrap_or_default();
+        obj.group = groups.name.get(&groups.root[n]).cloned().unwrap_or_default();
     }
 
     // The same thing on several pages is one thing: it takes its strongest page's verdict on
