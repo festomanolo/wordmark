@@ -658,6 +658,8 @@ pub(crate) fn save_to(app: &mut WordApp, out: String) {
     app.clean = st;
 }
 
+/// Set the folder to clean (and where the copies go), as Choose Folder… does; `start` starts
+/// cleaning it. For automation (`ui.dialog {name: "removeWatermarks", folder}`).
 /// The folder section, and what its buttons ask for.
 fn batch_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     use crate::clean_batch::Action;
