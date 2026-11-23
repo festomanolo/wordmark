@@ -723,7 +723,10 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
         let (backgrounds, links): (Vec<(usize, [f64; 4])>, Vec<[f64; 4]>) = {
             let fs = &found[p];
             (
-                fs.iter().filter(|g| g.obj.kind == Kind::Image && area(g.user_box) >= BACKGROUND_SHARE * page_area).map(|g| (g.order, g.user_box)).collect(),
+                fs.iter()
+                    .filter(|g| g.obj.kind == Kind::Image && area(g.user_box) >= BACKGROUND_SHARE * page_area)
+                    .map(|g| (g.order, g.user_box))
+                    .collect(),
                 fs.iter().filter(|g| g.obj.kind == Kind::Link).map(|g| g.user_box).collect(),
             )
         };
