@@ -814,17 +814,48 @@ fn weigh_drawn(f: &Found, s: [f64; 4], page: &PageFacts, edge: bool, repeats: bo
                 add(&mut z, why, weight, name);
             }
         }
-        // What a person marked before: by what it reads, links to or holds, or where it sits.
-        let ks = keys(f, s);
-        let text_norm = (matches!(f.obj.kind, Kind::Text | Kind::Stamp) && !f.obj.text.is_empty()).then(|| normalize(&f.obj.text));
-        let learned_mark = ks.iter().any(|k| model.watermark_objects.contains(k))
-            || text_norm.as_deref().is_some_and(|t| model.watermark_texts.iter().any(|w| similarity(t, w) >= LEARNED_MATCH));
-        let learned_keep = ks.iter().any(|k| model.content_objects.contains(k))
-            || text_norm.as_deref().is_some_and(|t| model.content_texts.iter().any(|w| similarity(t, w) >= LEARNED_MATCH));
-        if learned_keep {
-            add(&mut z, &mut why, -8.0, "marked as content before");
-        } else if learned_mark {
-            add(&mut z, &mut why, 5.0, "marked as a watermark before");
+    } else if size_share < 0.03 && size_share > 0.0 {
+        add(&mut z, why, 0.5, "small");
+    }
+    z
+}
+
+/// What a person marked before, by what `f` reads, links to or holds (`keys`), or where it
+/// sits: `Some(true)` a watermark, `Some(false)` content.
+fn learned(model: &Model, f: &Found, keys: &[String]) -> Option<bool> {
+    let text = (matches!(f.obj.kind, Kind::Text | Kind::Stamp) && !f.obj.text.is_empty()).then(|| normalize(&f.obj.text));
+    let like = |list: &[String]| text.as_deref().is_some_and(|t| list.iter().any(|w| similarity(t, w) >= LEARNED_MATCH));
+    if keys.iter().any(|k| model.content_objects.contains(k)) || like(&model.content_texts) {
+        Some(false)
+    } else if keys.iter().any(|k| model.watermark_objects.contains(k)) || like(&model.watermark_texts) {
+        Some(true)
+    } else {
+        None
+    }
+}
+
+/// Score every object of a document and group the look-alikes across pages.
+fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
+    let n_pages = found.len().max(1);
+    // Median text size, for "much larger than the body".
+    let mut text_sizes: Vec<f64> = found.iter().flatten().filter(|f| f.obj.kind == Kind::Text && f.font_size > 0.0).map(|f| f.font_size).collect();
+    text_sizes.sort_by(f64::total_cmp);
+    let body = text_sizes.get(text_sizes.len() / 2).copied().unwrap_or(0.0);
+    let size = |p: usize| sizes.get(p).copied().unwrap_or([1.0, 1.0]);
+    let spots: Vec<Vec<[f64; 4]>> = found.iter().enumerate().map(|(p, fs)| fs.iter().map(|f| spot(&f.obj, size(p))).collect()).collect();
+    let groups = group(found, &spots);
+    let facts: Vec<PageFacts> = found.iter().enumerate().map(|(p, fs)| PageFacts::of(fs, size(p), body)).collect();
+
+    for (n, &(p, i)) in groups.flat.iter().enumerate() {
+        let pages_with = groups.repeat_pages[n];
+        let repeats = pages_with >= 2 && pages_with * 2 >= n_pages;
+        let f = &found[p][i];
+        let (mut z, mut why) = weigh(f, spots[p][i], &facts[p], repeats);
+        let ks = keys(f, spots[p][i]);
+        match learned(model, f, &ks) {
+            Some(false) => add(&mut z, &mut why, -8.0, "marked as content before"),
+            Some(true) => add(&mut z, &mut why, 5.0, "marked as a watermark before"),
+            None => {}
         }
         let score = sigmoid(z);
         let obj = &mut found[p][i].obj;
