@@ -223,11 +223,15 @@ impl FolderFile {
     }
 }
 
-/// Where `clean.folder` writes by default: a folder beside `dir`, named `<dir>-clean`.
-pub fn default_folder_out(dir: &str) -> String {
-    let d = std::path::Path::new(dir.trim_end_matches(['/', '\\']));
-    let name = d.file_name().map_or_else(|| "pdfs".to_string(), |n| n.to_string_lossy().into_owned());
-    d.with_file_name(format!("{name}-clean")).to_string_lossy().into_owned()
+/// The suffix a clean copy's name gets: `exam.pdf` is cleaned into `exam-clean.pdf`.
+const CLEAN_SUFFIX: &str = "-clean";
+
+/// Where the clean copy of `pdf` goes: beside it, named `<name>-clean.pdf`.
+pub fn clean_copy_path(pdf: &str) -> String {
+    let p = std::path::Path::new(pdf);
+    let stem = p.file_stem().map_or_else(|| "document".to_string(), |s| s.to_string_lossy().into_owned());
+    let ext = p.extension().map_or_else(|| "pdf".to_string(), |e| e.to_string_lossy().into_owned());
+    p.with_file_name(format!("{stem}{CLEAN_SUFFIX}.{ext}")).to_string_lossy().into_owned()
 }
 
 /// The PDFs in `dir` (and its subfolders when `subfolders`), each with the path it is written to
