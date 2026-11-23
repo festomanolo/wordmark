@@ -741,7 +741,7 @@ fn document_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             if let Some(m) = model_path(app).filter(|m| std::path::Path::new(m).exists()) {
                 p["model"] = json!(m);
             }
-            match app.run("clean.document", p) {
+            st.doc_message = match app.run("clean.document", p) {
                 Ok(r) => {
                     let n = r["learnedTextRemoved"].as_u64().unwrap_or(0) + u64::from(r["watermarkRemoved"].as_bool().unwrap_or(false));
                     let links = r["linksUnlinked"].as_u64().unwrap_or(0) + r["urlsRemoved"].as_u64().unwrap_or(0);
