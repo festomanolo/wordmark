@@ -709,7 +709,8 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
     let mut repeat_pages: Vec<usize> = vec![1; flat.len()];
     for (n, &(p, i)) in flat.iter().enumerate() {
         let r = root(&mut parent, n);
-        let pages: HashSet<usize> = members[&r].iter().map(|&m| flat[m]).filter(|&(q, j)| q == p || same_spot(spots[p][i], spots[q][j])).map(|(q, _)| q).collect();
+        let pages: HashSet<usize> =
+            members[&r].iter().map(|&m| flat[m]).filter(|&(q, j)| q == p || same_spot(spots[p][i], spots[q][j])).map(|(q, _)| q).collect();
         repeat_pages[n] = pages.len();
     }
 
