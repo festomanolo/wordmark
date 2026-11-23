@@ -278,6 +278,26 @@ pub fn folder_jobs(dir: &str, out: &str, subfolders: bool) -> Result<Vec<(String
     found.sort();
     Ok(found
         .into_iter()
+        .map(|f| {
+            let rel = f.strip_prefix(root).map_or_else(|_| PathBuf::from(f.file_name().unwrap_or_default()), Path::to_path_buf);
+            (f.to_string_lossy().into_owned(), out_root.join(rel).to_string_lossy().into_owned())
+        })
+        .collect())
+}
+
+/// Clean one PDF with `model`: what it is sure of is removed and the result written to `output`
+/// (a copy as it was when nothing is). Failures are in the result's `error`.
+pub fn clean_folder_file(input: &str, output: &str, model: &Model, password: Option<&str>) -> FolderFile {
+    let mut f = FolderFile { input: input.to_string(), output: output.to_string(), ..FolderFile::default() };
+    let run = || -> Result<(usize, usize), String> {
+        crate::file_access::check_write(output)?;
+        let bytes = crate::io::read_file_capped(input, MAX_PDF, "PDF")?;
+        let found = objects::scan(&bytes, password, model).map_err(|e| format!("{input}: {e}"))?;
+        let ids: Vec<String> = found.objects.iter().filter(|o| o.decision == Decision::Remove).map(|o| o.id.clone()).collect();
+        let unsure: std::collections::HashSet<&str> = found.objects.iter().filter(|o| o.decision == Decision::Review).map(|o| o.group.as_str()).collect();
+        let (pdf, removed) = if ids.is_empty() {
+            (bytes, 0)
+        } else {
 /// The largest preview side (pixels).
 const MAX_PREVIEW_SIDE: u32 = 2400;
 
