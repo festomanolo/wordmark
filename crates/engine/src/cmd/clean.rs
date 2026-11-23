@@ -240,7 +240,6 @@ pub fn clean_copy_path(pdf: &str) -> String {
 pub fn folder_jobs(dir: &str, subfolders: bool) -> Result<Vec<(String, String)>, String> {
     use std::path::{Path, PathBuf};
     crate::file_access::check_read(dir)?;
-    crate::file_access::check_write(out)?;
     let root = Path::new(dir);
     if !root.is_dir() {
         return Err(format!("{dir} is not a folder"));
