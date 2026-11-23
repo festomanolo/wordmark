@@ -98,7 +98,7 @@ pub(crate) fn start(ctx: &egui::Context, b: &mut Batch, model: Option<String>) {
     b.cancel = Arc::new(AtomicBool::new(false));
     b.checked.clear();
     b.run = Some(Arc::clone(&state));
-    let (dir, out, subfolders, notify, cancel, ctx) = (b.dir.clone(), b.out_dir(), b.subfolders, b.notify, Arc::clone(&b.cancel), ctx.clone());
+    let (dir, subfolders, notify, cancel, ctx) = (b.dir.clone(), b.subfolders, b.notify, Arc::clone(&b.cancel), ctx.clone());
     let words = Words {
         title: tl!("PDFs cleaned").to_string(),
         clean: tl!("{n} PDFs cleaned. Nothing needs your check.").to_string(),
