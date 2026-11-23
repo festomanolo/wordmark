@@ -712,7 +712,7 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
 
     for (n, &(p, i)) in flat.iter().enumerate() {
         let r = root(&mut parent, n);
-        let pages_with = group_pages.get(&r).map_or(1, HashSet::len);
+        let pages_with = repeat_pages[n];
         let page_area = f64::from(sizes[p][0]) * f64::from(sizes[p][1]);
         let s = spots[p][i];
         // The page's own pictures (a scan) and the links on it, from the same page.
@@ -762,6 +762,8 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
                     add(&mut z, &mut why, -6.0, "invisible text (OCR layer)");
                 }
                 let over_scan = backgrounds.iter().any(|(order, bb)| f.order > *order && overlap(f.user_box, *bb) && *bb != f.user_box);
+                // A picture pasted over a scan is the commonest stamp; text over a full-page
+                // picture is as often a designed page's real text, so it only leans.
                 if over_scan && !f.invisible {
                     add(&mut z, &mut why, 3.5, "drawn over the page picture");
                 }
