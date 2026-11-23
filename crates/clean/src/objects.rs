@@ -390,6 +390,7 @@ fn read_page(doc: &Document, page: &PageRef, index: usize) -> Result<(Vec<Found>
                 if let Some((first, shows, Some(b), text, at, turned_text)) = block.take()
                     && !shows.is_empty()
                 {
+                    // Text in a font whose codes aren't characters reads as nothing, not noise.
                     let text = text.trim().to_string();
                     out.push(Found {
                         obj: object(id('c', first), index, Kind::Text, page.rect_to_view(b), text),
