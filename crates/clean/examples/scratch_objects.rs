@@ -5,7 +5,19 @@ fn main() {
     let scan = wordcraft_clean::objects::scan(&bytes, None, &model).unwrap();
     println!("pages {:?} unreadable {:?}", scan.pages, scan.unreadable);
     for o in &scan.objects {
-        println!("{:6} {:7} {:>4.0}% {:?} g={} bbox={:?} px={:?} {:?} keys={:?} why={:?}", o.id, o.kind.name(), o.score * 100.0, o.decision, o.group, o.bbox.map(|v| v.round()), o.pixels, o.text, o.keys, o.reasons);
+        println!(
+            "{:6} {:7} {:>4.0}% {:?} g={} bbox={:?} px={:?} {:?} keys={:?} why={:?}",
+            o.id,
+            o.kind.name(),
+            o.score * 100.0,
+            o.decision,
+            o.group,
+            o.bbox.map(|v| v.round()),
+            o.pixels,
+            o.text,
+            o.keys,
+            o.reasons
+        );
     }
     if let Some(out) = args.get(2) {
         let ids: Vec<String> = scan.objects.iter().filter(|o| o.decision == wordcraft_clean::Decision::Remove).map(|o| o.id.clone()).collect();
