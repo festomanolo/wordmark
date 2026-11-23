@@ -294,7 +294,7 @@ fn learn(app: &mut WordApp, st: &mut CleanPane) -> bool {
     match app.run("clean.learn", p) {
         Ok(r) => {
             let n = r["learned"].as_u64().unwrap_or(0);
-            let msg = crate::i18n::fmt(tl!("Learned from {n} picks."), &[("n", &n.to_string())]);
+            let msg = crate::i18n::fmt(tl!("Picks learned: {n}."), &[("n", &n.to_string())]);
             app.status(msg.clone());
             st.say(msg, false);
             true
