@@ -159,7 +159,7 @@ fn groups(objects: &[Value]) -> Vec<Group> {
                 boxes: Vec::new(),
                 score,
                 decision: decision.to_string(),
-                    decision: decision.to_string(),
+            });
                 });
                 out.last_mut().expect("just pushed")
             }
