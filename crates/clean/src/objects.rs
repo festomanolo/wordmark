@@ -525,7 +525,10 @@ fn read_page(doc: &Document, page: &PageRef, index: usize) -> Result<(Vec<Found>
         let (kind, text, uri, internal) = match d.name(b"Subtype") {
             Some(b"Link") => {
                 let action = d.get(b"A").and_then(|o| doc.dict(o));
-                let uri = action.as_ref().filter(|a| a.name(b"S") == Some(b"URI")).and_then(|a| doc.resolve(a.get(b"URI")?).as_string().map(|s| s.to_text()));
+                let uri = action
+                    .as_ref()
+                    .filter(|a| a.name(b"S") == Some(b"URI"))
+                    .and_then(|a| doc.resolve(a.get(b"URI")?).as_string().map(|s| s.to_text()));
                 let internal = uri.is_none() && (d.contains(b"Dest") || action.is_some_and(|a| matches!(a.name(b"S"), Some(b"GoTo" | b"Named"))));
                 (Kind::Link, uri.clone().unwrap_or_default(), uri, internal)
             }
@@ -706,7 +709,8 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
     let mut repeat_pages: Vec<usize> = vec![1; flat.len()];
     for (n, &(p, i)) in flat.iter().enumerate() {
         let r = root(&mut parent, n);
-        let pages: HashSet<usize> = members[&r].iter().map(|&m| flat[m]).filter(|&(q, j)| q == p || same_spot(spots[p][i], spots[q][j])).map(|(q, _)| q).collect();
+        let pages: HashSet<usize> =
+            members[&r].iter().map(|&m| flat[m]).filter(|&(q, j)| q == p || same_spot(spots[p][i], spots[q][j])).map(|(q, _)| q).collect();
         repeat_pages[n] = pages.len();
     }
 
@@ -719,7 +723,10 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
         let (backgrounds, links): (Vec<(usize, [f64; 4])>, Vec<[f64; 4]>) = {
             let fs = &found[p];
             (
-                fs.iter().filter(|g| g.obj.kind == Kind::Image && area(g.user_box) >= BACKGROUND_SHARE * page_area).map(|g| (g.order, g.user_box)).collect(),
+                fs.iter()
+                    .filter(|g| g.obj.kind == Kind::Image && area(g.user_box) >= BACKGROUND_SHARE * page_area)
+                    .map(|g| (g.order, g.user_box))
+                    .collect(),
                 fs.iter().filter(|g| g.obj.kind == Kind::Link).map(|g| g.user_box).collect(),
             )
         };
@@ -907,13 +914,8 @@ pub fn remove(bytes: &[u8], password: Option<&str>, ids: &[String]) -> Result<(V
             let refs: Vec<Object> = new.iter().map(|data| Object::Ref(doc.add(Stream::flate(Dict::new(), data)))).collect();
             dict.set(b"Contents".to_vec(), Object::Array(refs));
             // Pictures the page no longer draws leave its resources (a copy: they may be shared).
-            let still: HashSet<Vec<u8>> = Pieces::join(&new)
-                .parse()
-                .ops
-                .iter()
-                .filter(|o| o.is("Do"))
-                .filter_map(|o| o.last_name().map(<[u8]>::to_vec))
-                .collect();
+            let still: HashSet<Vec<u8>> =
+                Pieces::join(&new).parse().ops.iter().filter(|o| o.is("Do")).filter_map(|o| o.last_name().map(<[u8]>::to_vec)).collect();
             let gone: Vec<Vec<u8>> = dropped_names.into_iter().filter(|n| !still.contains(n)).collect();
             if !gone.is_empty() {
                 let mut res = page.resources.clone();

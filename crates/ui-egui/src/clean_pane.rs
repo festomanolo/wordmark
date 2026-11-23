@@ -10,8 +10,8 @@ use craft::theme::variant::Tone;
 use craft::ui::buttons::Button;
 use craft::ui::choice::Checkbox;
 use craft::ui::contract::{
-    Bind, CollectionEvent, ColumnSpec, Common, Component, Cx, Entry, MeasureCx, PaintUi, Props, Props as _, Role, SelectMode, Show as _, ShowCollection as _,
-    ShowContainer as _, Sizing, SpaceAction, ToggleColumn,
+    Bind, CollectionEvent, ColumnSpec, Common, Component, Cx, Entry, MeasureCx, PaintUi, Props as _, Role, SelectMode, Show as _,
+    ShowCollection as _, ShowContainer as _, Sizing, SpaceAction, ToggleColumn,
 };
 use craft::ui::display::Text;
 use craft::ui::layout_components::Row;
@@ -45,8 +45,6 @@ const URL_MODES: [(&str, &str); 3] = [("remove", "Remove them"), ("unlink", "Kee
 #[derive(Clone, Debug)]
 pub(crate) struct Candidate {
     pub text: String,
-    /// `remove`, `review` or `keep`: what the model would do.
-    pub decision: String,
 }
 
 /// Things that are the same on different pages (a footer on every page), listed as one row.
@@ -116,18 +114,12 @@ impl CleanPane {
             .unwrap_or_default();
         self.candidates = r["candidates"]
             .as_array()
-            .map(|a| {
-                a.iter()
-                    .map(|c| Candidate {
-                        text: c["text"].as_str().unwrap_or_default().to_string(),
-                        decision: c["decision"].as_str().unwrap_or("keep").to_string(),
-                    })
-                    .collect()
-            })
+            .map(|a| a.iter().map(|c| Candidate { text: c["text"].as_str().unwrap_or_default().to_string() }).collect())
             .unwrap_or_default();
         self.groups = groups(r["objects"].as_array().map(Vec::as_slice).unwrap_or_default());
         self.picked = self.groups.iter().map(|g| g.decision == "remove").collect();
-        self.view_page = self.groups.iter().zip(&self.picked).find(|(_, on)| **on).and_then(|(g, _)| g.pages.first()).map_or(0, |p| p.saturating_sub(1) as usize);
+        self.view_page =
+            self.groups.iter().zip(&self.picked).find(|(_, on)| **on).and_then(|(g, _)| g.pages.first()).map_or(0, |p| p.saturating_sub(1) as usize);
         self.serial = self.serial.wrapping_add(1);
     }
 }
@@ -318,7 +310,10 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             let pages = st.needs_ocr.iter().map(u64::to_string).collect::<Vec<_>>().join(", ");
             Notice::new(
                 Tone::Warn,
-                crate::i18n::fmt(tl!("Pages {pages} are scanned pictures with no text: they come out empty. Save a clean PDF instead."), &[("pages", &pages)]),
+                crate::i18n::fmt(
+                    tl!("Pages {pages} are scanned pictures with no text: they come out empty. Save a clean PDF instead."),
+                    &[("pages", &pages)],
+                ),
             )
             .show(ui);
         }
@@ -367,15 +362,16 @@ fn page_preview(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     let side = ((ui.available_width() * ppp * (pw.max(ph) / pw) / PREVIEW_STEP).ceil() * PREVIEW_STEP).clamp(PREVIEW_STEP, PREVIEW_MAX) as u32;
     let path = st.path.clone();
     let mut failed = None;
-    let texture = TextureCache::texture(ui.ctx(), ("clean-preview", path.clone(), st.serial, page, side), || {
-        match wordcraft_engine::cmd::clean::page_preview(&path, None, page, side) {
+    let texture =
+        TextureCache::texture(ui.ctx(), ("clean-preview", path.clone(), st.serial, page, side), || match wordcraft_engine::cmd::clean::page_preview(
+            &path, None, page, side,
+        ) {
             Ok(pic) => egui::ColorImage::from_rgba_premultiplied([pic.width as usize, pic.height as usize], &pic.rgba),
             Err(e) => {
                 failed = Some(e);
                 egui::ColorImage::filled([1, 1], egui::Color32::TRANSPARENT)
             }
-        }
-    });
+        });
     if let Some(e) = failed {
         app.status(e.clone());
         st.say(e, true);
@@ -398,10 +394,7 @@ fn page_preview(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             }
         }
     }
-    let label = crate::i18n::fmt(
-        tl!("Page {n}: {marked} items to remove"),
-        &[("n", &shown.to_string()), ("marked", &marked.to_string())],
-    );
+    let label = crate::i18n::fmt(tl!("Page {n}: {marked} items to remove"), &[("n", &shown.to_string()), ("marked", &marked.to_string())]);
     PagePreview::new(label, texture, ph / pw, boxes).show(ui);
 }
 
@@ -527,8 +520,20 @@ fn group_list(ui: &mut Ui, st: &mut CleanPane) {
 /// Where on the page a box sits, in words: "bottom right", "middle".
 fn place(b: [f32; 4], size: [f32; 2]) -> String {
     let (x, y) = ((b[0] + b[2]) / 2.0 / size[0].max(1.0), (b[1] + b[3]) / 2.0 / size[1].max(1.0));
-    let row = if y < 1.0 / 3.0 { 0 } else if y < 2.0 / 3.0 { 1 } else { 2 };
-    let col = if x < 1.0 / 3.0 { 0 } else if x < 2.0 / 3.0 { 1 } else { 2 };
+    let row = if y < 1.0 / 3.0 {
+        0
+    } else if y < 2.0 / 3.0 {
+        1
+    } else {
+        2
+    };
+    let col = if x < 1.0 / 3.0 {
+        0
+    } else if x < 2.0 / 3.0 {
+        1
+    } else {
+        2
+    };
     let words = [["top left", "top", "top right"], ["left", "middle", "right"], ["bottom left", "bottom", "bottom right"]];
     tl!(words[row][col]).to_string()
 }
