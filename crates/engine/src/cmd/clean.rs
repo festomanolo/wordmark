@@ -46,8 +46,8 @@ fn model(v: &Value) -> Result<Model, CmdError> {
             Ok(Model::default())
         }
         Some(path) => {
-            crate::file_access::check_read(path).map_err(CmdError::Failed)?;
-            Model::load(std::path::Path::new(path)).map_err(CmdError::Failed)
+            let bytes = crate::io::read_file_capped(path, MAX_MODEL, "model").map_err(CmdError::Failed)?;
+            serde_json::from_slice(&bytes).map_err(|e| CmdError::Failed(format!("{path}: {e}")))
         }
         None => Ok(Model::default()),
     }
