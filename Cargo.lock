@@ -1942,6 +1942,12 @@ name = "craft-pdf"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=243d68e12d05e89122db6d154924bf1992e10d38#243d68e12d05e89122db6d154924bf1992e10d38"
 dependencies = [
+ "aes",
+ "bytemuck",
+ "chrono",
+ "craft-stream-codecs",
+ "flate2",
+ "hayro",
  "hayro-interpret",
  "hayro-syntax",
  "krilla",
