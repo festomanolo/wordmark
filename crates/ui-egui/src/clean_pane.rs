@@ -216,6 +216,7 @@ pub(crate) fn scan(app: &mut WordApp, path: String) {
     let mut st = std::mem::take(&mut app.clean);
     st.open = true;
     st.path = path;
+    st.save_target = None;
     st.groups.clear();
     st.picked.clear();
     st.candidates.clear();
