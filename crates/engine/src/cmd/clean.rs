@@ -298,6 +298,26 @@ pub fn clean_folder_file(input: &str, output: &str, model: &Model, password: Opt
         let (pdf, removed) = if ids.is_empty() {
             (bytes, 0)
         } else {
+            let (pdf, done) = objects::remove(&bytes, password, &ids).map_err(|e| format!("{input}: {e}"))?;
+            (pdf, done.total())
+        };
+        if let Some(dir) = std::path::Path::new(output).parent().filter(|d| !d.as_os_str().is_empty()) {
+            std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+        }
+        crate::io::write_file(output, &pdf)?;
+        Ok((removed, unsure.len()))
+    };
+    match run() {
+        Ok((removed, unsure)) => {
+            f.removed = removed;
+            f.unsure = unsure;
+        }
+        Err(e) => f.error = e,
+    }
+    f
+}
+
+/// Clean every `(input, output)` of `jobs` with the model in `model_path` (or the starting
 /// The largest preview side (pixels).
 const MAX_PREVIEW_SIDE: u32 = 2400;
 
