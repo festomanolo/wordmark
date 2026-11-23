@@ -754,7 +754,7 @@ fn document_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
                         )
                     };
                     app.status(msg.clone());
-                    st.say(msg, false);
+                    msg
                 }
                 Err(e) => st.say(e, true),
             }
