@@ -65,7 +65,7 @@ const LINES: [&str; 3] = ["Answer all questions", "Show your working clearly", "
 /// A logo pasted over the middle of the scan.
 const LOGO: &str = "q 224 0 0 31 186 377 cm /Stamp Do Q";
 
-fn find<'a>(s: &'a Scan, page: usize, kind: Kind, f: impl Fn(&PageObject) -> bool) -> &'a PageObject {
+fn find(s: &Scan, page: usize, kind: Kind, f: impl Fn(&PageObject) -> bool) -> &PageObject {
     s.objects.iter().find(|o| o.page == page && o.kind == kind && f(o)).unwrap_or_else(|| panic!("no {kind:?} on page {page}: {:#?}", s.objects))
 }
 
@@ -124,7 +124,7 @@ fn a_picture_marked_once_is_recognised_where_it_sits_in_the_next_file_from_that_
     let mark = find(&s, 1, Kind::Image, |o| !is_scan(o));
     assert_ne!(mark.decision, Decision::Remove, "{mark:#?}");
 
-    model.learn_objects(&keys_of(&s, &[mark.id.clone()]), &[]);
+    model.learn_objects(&keys_of(&s, std::slice::from_ref(&mark.id)), &[]);
     // The next file has a different picture (other pixels) in the same place.
     let next = scanned(&["", corner]);
     let s = scan(&next, None, &model).expect("reads");
