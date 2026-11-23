@@ -198,6 +198,26 @@ fn save_pdf(_: &mut Session, v: &Value) -> CmdResult {
     }))
 }
 
+/// The most PDFs `clean.folder` takes from one folder; a bigger one is refused, not cut short.
+const MAX_FOLDER_FILES: usize = 20_000;
+/// How deep `clean.folder` goes into subfolders.
+const MAX_FOLDER_DEPTH: usize = 32;
+
+/// One PDF of a folder, cleaned by [`clean_folder_files`].
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FolderFile {
+    pub input: String,
+    pub output: String,
+    /// Things removed.
+    pub removed: usize,
+    /// Things it was not sure of (counted once however many pages they are on): kept in the
+    /// output for a person to check.
+    pub unsure: usize,
+    /// Empty when the file was cleaned and written.
+    pub error: String,
+}
+
+impl FolderFile {
 /// The largest preview side (pixels).
 const MAX_PREVIEW_SIDE: u32 = 2400;
 
