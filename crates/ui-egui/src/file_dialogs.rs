@@ -74,8 +74,8 @@ pub(crate) enum AfterPick {
     WatermarkedPdf,
     /// Write the Remove Watermarks pane's PDF there without the ticked items.
     CleanPdf,
-    /// Clean the PDFs in the picked folder (`out`: write the clean copies there instead).
-    CleanFolder { out: bool },
+    /// Clean the PDFs in the picked folder.
+    CleanFolder,
     /// Import the picked Word bibliography file (`b:Sources`: Word's `Sources.xml`) into the
     /// document through Manage Sources (#2640).
     #[cfg(not(target_arch = "wasm32"))]
