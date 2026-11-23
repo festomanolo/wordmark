@@ -52,7 +52,6 @@ impl Default for Batch {
     fn default() -> Self {
         Batch {
             dir: String::new(),
-            out: String::new(),
             subfolders: true,
             notify: true,
             run: None,
