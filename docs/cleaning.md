@@ -45,7 +45,7 @@ learned. Each clean copy is saved next to its PDF, wherever it is in the folder 
 copies). A bar shows how
 far it has got, and **Stop** stops it after the files under way. What the detector is sure of is
 removed; a file with things it is not sure of is written with them kept and listed with a
-**Check** button, which opens it in the pane with its pages marked, and **Save to Clean Folder**
+**Check** button, which opens it in the pane with its pages marked, and **Save Clean Copy**
 writes its clean copy again with your picks (which are learned, so **Clean Again** gets further).
 When the run ends a notification with a sound says how many files need a check, and the Dock
 icon bounces (macOS: Notification Centre; Linux and the BSDs: `notify-send`; Windows and the web
