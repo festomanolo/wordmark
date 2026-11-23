@@ -252,7 +252,8 @@ fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
                 }
                 let status = if done { tl!("checked") } else { tl!("not sure of {n}") };
                 let status = crate::i18n::fmt(status, &[("n", &f.unsure.to_string())]);
-                Text::new(format!("{} · {status}", relative(&b.dir, &f.input))).show(ui);
+                // What to do first: a narrow pane cuts off the end of the name, not the count.
+                Text::new(format!("{status} · {}", relative(&b.dir, &f.input))).show(ui);
             });
         }
         if check.len() > LISTED {
