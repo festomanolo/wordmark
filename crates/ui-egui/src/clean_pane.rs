@@ -224,9 +224,9 @@ pub(crate) fn scan(app: &mut WordApp, path: String) {
         Ok(r) => {
             st.take_scan(&r);
             let found = st.picked.iter().filter(|p| **p).count();
-            let unsure = st.candidates.iter().filter(|c| c.decision == "review").count();
+            let unsure = st.groups.iter().filter(|g| g.decision == "review").count();
             let msg = crate::i18n::fmt(
-                tl!("Watermarks found: {found}. Not sure: {unsure}. Tick every text that is a watermark."),
+                tl!("Watermarks found: {found}. Not sure: {unsure}. Tick everything to remove, then save."),
                 &[("found", &found.to_string()), ("unsure", &unsure.to_string())],
             );
             app.status(msg.clone());
@@ -250,7 +250,7 @@ pub(crate) fn show(app: &mut WordApp, ui: &mut Ui) {
 
 fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     Section::fixed(tl!("1. Choose a PDF")).show(ui, |ui, _| {
-        Text::new(tl!("It opens as an editable document, without the watermarks you tick.")).show(ui);
+        Text::new(tl!("Pictures, text and links drawn over its pages are found and marked.")).show(ui);
         Row::new().show(ui, |ui, _| {
             if Button::new(tl!("Choose PDF…")).show(ui).clicked() {
                 app.clean = std::mem::take(st);
@@ -265,19 +265,7 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             }
         });
         if !st.path.is_empty() {
-            let name = std::path::Path::new(&st.path).file_name().map_or(st.path.clone(), |n| n.to_string_lossy().into_owned());
-            Text::new(crate::i18n::fmt(tl!("{name}, {pages} pages"), &[("name", &name), ("pages", &st.pages.to_string())])).show(ui);
-        }
-        if !st.needs_ocr.is_empty() {
-            let pages = st.needs_ocr.iter().map(u64::to_string).collect::<Vec<_>>().join(", ");
-            Notice::new(
-                Tone::Bad,
-                crate::i18n::fmt(
-                    tl!("Pages {pages} are scanned pictures with no text: run OCR on the PDF first, or they come out empty."),
-                    &[("pages", &pages)],
-                ),
-            )
-            .show(ui);
+            Text::new(crate::i18n::fmt(tl!("{name}, {pages} pages"), &[("name", &file_name(&st.path)), ("pages", &st.pages.to_string())])).show(ui);
         }
     });
     if st.candidates.is_empty() {
