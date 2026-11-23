@@ -1,5 +1,3 @@
-            "{:6} {:7} {:>4.0}% {:?} g={} bbox={:?} px={:?} {:?} keys={:?} why={:?}",
-            o.id,
             o.kind.name(),
             o.score * 100.0,
             o.decision,
