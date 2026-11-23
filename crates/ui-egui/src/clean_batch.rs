@@ -217,6 +217,9 @@ pub(crate) fn checking(ui: &mut Ui, b: &Batch, input: &str) -> Action {
     let mut action = Action::None;
     let files = to_check(b);
     let left = files.iter().filter(|(i, _)| i != input && !b.checked.contains(i)).count();
+    Section::fixed(tl!("Checking a file from the folder")).show(ui, |ui, _| {
+        Text::new(crate::i18n::fmt(tl!("{name}. Files left to check: {left}."), &[("name", &relative(&b.dir, input)), ("left", &left.to_string())]))
+            .show(ui);
 /// How far the run has got, and what it left for a person.
 fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
     let run = b.run.as_ref()?;
