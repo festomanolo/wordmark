@@ -695,9 +695,8 @@ fn group(found: &[Vec<Found>], spots: &[Vec<[f64; 4]>]) -> Groups {
     let mut members: HashMap<usize, Vec<usize>> = HashMap::new();
     let mut name: HashMap<usize, String> = HashMap::new();
     for (n, &(p, i)) in flat.iter().enumerate() {
-        let r = root(&mut parent, n);
-        members.entry(r).or_default().push(n);
-        group_first.entry(r).or_insert_with(|| found[p][i].obj.id.clone());
+        members.entry(roots[n]).or_default().push(n);
+        name.entry(roots[n]).or_insert_with(|| found[p][i].obj.id.clone());
     }
     // On how many pages the same thing sits in the same spot (a footer, a corner logo): the same
     // line elsewhere on another page is not a repeat.
