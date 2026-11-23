@@ -276,6 +276,7 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     if st.path.is_empty() || st.page_sizes.is_empty() {
         return;
     }
+    if std::mem::take(&mut st.show_pages) {
     }
     Section::fixed(tl!("2. Check the pages")).show(ui, |ui, _| {
         page_nav(ui, st);
