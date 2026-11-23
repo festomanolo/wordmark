@@ -113,11 +113,14 @@ fn scan(_: &mut Session, v: &Value) -> CmdResult {
     let found = wordcraft_clean::candidates(&pages, &model, limit(v));
     let candidates: Vec<Value> =
         found.iter().map(|c| json!({"text": c.text, "pages": c.pages, "score": c.score, "decision": decision_name(model.decide(c.score))})).collect();
+    let objects = objects::scan(&bytes, p::str(v, "password"), &model).map_err(|e| CmdError::Failed(format!("{path}: {e}")))?;
     Ok(json!({
         "path": path,
         "pages": pages.len(),
+        "pageSizes": objects.pages,
         "needsOcr": pages_where(&pages, PageText::needs_ocr),
         "incompletePages": pages_where(&pages, |p| p.failed || p.truncated),
+        "unreadablePages": objects.unreadable,
         "candidates": candidates,
     }))
 }
