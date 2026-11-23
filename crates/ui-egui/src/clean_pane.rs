@@ -11,7 +11,7 @@ use craft::ui::buttons::Button;
 use craft::ui::choice::Checkbox;
 use craft::ui::contract::{
     Bind, CollectionEvent, ColumnSpec, Common, Component, Cx, Entry, MeasureCx, PaintUi, Props, Role, SelectMode, Show as _, ShowCollection as _,
-    ShowCollection as _, ShowContainer as _, Sizing, SpaceAction, ToggleColumn,
+    ShowContainer as _, Sizing, SpaceAction, ToggleColumn,
 };
 use craft::ui::display::Text;
 use craft::ui::layout_components::Row;
