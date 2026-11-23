@@ -326,7 +326,7 @@ fn open_cleaned(app: &mut WordApp, st: &mut CleanPane) {
             );
             if unsure > 0 && !st.drop_unsure {
                 msg.push(' ');
-                msg.push_str(&crate::i18n::fmt(tl!("{n} unsure texts were kept."), &[("n", &unsure.to_string())]));
+                msg.push_str(&crate::i18n::fmt(tl!("Unsure texts kept: {n}."), &[("n", &unsure.to_string())]));
             }
             if r["needsOcr"].as_array().is_some_and(|a| !a.is_empty()) {
                 msg.push(' ');
