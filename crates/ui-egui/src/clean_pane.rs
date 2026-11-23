@@ -516,19 +516,32 @@ fn group_list(ui: &mut Ui, st: &mut CleanPane) {
             && let Some(p) = picked.get_mut(after.key)
         {
             *p = after.on;
+            // Show the page it is on, so the tick can be checked on the page.
+            if let Some(first) = st.groups.get(after.key).and_then(|g| g.pages.first()) {
+                st.view_page = first.saturating_sub(1) as usize;
+            }
         }
     }
 }
 
-/// "92% watermark · DRAFT COPY · pages 1–6": the verdict first, in words as well as a number, so a
-/// narrow pane cuts off the text rather than the verdict.
-fn row_label(c: &Candidate) -> String {
-    let pages = match (c.pages.first(), c.pages.last()) {
+/// Where on the page a box sits, in words: "bottom right", "middle".
+fn place(b: [f32; 4], size: [f32; 2]) -> String {
+    let (x, y) = ((b[0] + b[2]) / 2.0 / size[0].max(1.0), (b[1] + b[3]) / 2.0 / size[1].max(1.0));
+    let row = if y < 1.0 / 3.0 { 0 } else if y < 2.0 / 3.0 { 1 } else { 2 };
+    let col = if x < 1.0 / 3.0 { 0 } else if x < 2.0 / 3.0 { 1 } else { 2 };
+    let words = [["top left", "top", "top right"], ["left", "middle", "right"], ["bottom left", "bottom", "bottom right"]];
+    tl!(words[row][col]).to_string()
+}
+
+/// "92% watermark · Picture, middle · page 1": the verdict first, in words as well as a number,
+/// so a narrow pane cuts off the description rather than the verdict.
+fn row_label(g: &Group, sizes: &[[f32; 2]]) -> String {
+    let pages = match (g.pages.first(), g.pages.last()) {
         (Some(a), Some(b)) if a != b => crate::i18n::fmt(tl!("pages {a}–{b}"), &[("a", &a.to_string()), ("b", &b.to_string())]),
         (Some(a), _) => crate::i18n::fmt(tl!("page {a}"), &[("a", &a.to_string())]),
         _ => String::new(),
     };
-    let verdict = match c.decision.as_str() {
+    let verdict = match g.decision.as_str() {
         "remove" => tl!("watermark"),
         "review" => tl!("not sure"),
         _ => tl!("content"),
