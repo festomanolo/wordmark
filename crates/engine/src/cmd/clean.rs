@@ -15,6 +15,8 @@ use crate::{CmdError, CmdResult, CommandSpec, Session, p};
 
 /// The largest PDF read (bytes); a bigger one is refused rather than held in memory.
 const MAX_PDF: u64 = 512 * 1024 * 1024;
+/// The largest learned model file read (bytes).
+const MAX_MODEL: u64 = 64 * 1024 * 1024;
 /// How many candidates a scan lists by default, and at most.
 const DEFAULT_LIMIT: u64 = 30;
 const MAX_LIMIT: u64 = 500;
