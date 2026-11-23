@@ -213,13 +213,12 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             if Button::new(tl!("Open Without Watermarks")).show(ui).clicked() {
                 open_cleaned(app, st);
             }
-            if Button::new(tl!("Learn Only")).enabled(learnable).show(ui).clicked() {
-                if learn(app, st) {
-                    let path = st.path.clone();
-                    app.clean = std::mem::take(st);
-                    scan(app, path);
-                    *st = std::mem::take(&mut app.clean);
-                }
+            // Scanned again after learning, so the list shows what the detector now thinks.
+            if Button::new(tl!("Learn Only")).enabled(learnable).show(ui).clicked() && learn(app, st) {
+                let path = st.path.clone();
+                app.clean = std::mem::take(st);
+                scan(app, path);
+                *st = std::mem::take(&mut app.clean);
             }
         });
         if !learnable {
