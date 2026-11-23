@@ -394,10 +394,7 @@ fn page_preview(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             }
         }
     }
-    let label = crate::i18n::fmt(
-        tl!("Page {n}: {marked} items to remove"),
-        &[("n", &shown.to_string()), ("marked", &marked.to_string())],
-    );
+    let label = crate::i18n::fmt(tl!("Page {n}: {marked} items to remove"), &[("n", &shown.to_string()), ("marked", &marked.to_string())]);
     PagePreview::new(label, texture, ph / pw, boxes).show(ui);
 }
 
