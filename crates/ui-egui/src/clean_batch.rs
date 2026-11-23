@@ -167,9 +167,6 @@ pub(crate) fn section(ui: &mut Ui, b: &mut Batch) -> Action {
             if Button::new(tl!("Choose Folder…")).enabled(!running).show(ui).clicked() {
                 action = Action::ChooseFolder;
             }
-            if !b.dir.is_empty() && Button::new(tl!("Change Output Folder…")).enabled(!running).show(ui).clicked() {
-                action = Action::ChooseOut;
-            }
         });
         if b.dir.is_empty() {
             return;
