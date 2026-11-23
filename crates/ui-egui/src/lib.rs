@@ -33,6 +33,7 @@ pub mod canvas;
 pub mod caret_glide;
 pub mod chrome;
 // PLAN: the `colors` module line stays because `more_colors` (ribbon-w11, rb.A4) names `colors::Target`; the sheet's removal list assumed the dialog went with it.
+mod clean_pane;
 pub mod colors;
 pub mod content_controls;
 pub mod control;
@@ -63,7 +64,6 @@ pub mod print_page;
 pub mod printing;
 pub mod proofing_pane;
 pub mod read_aloud;
-mod clean_pane;
 mod restrict_pane;
 pub mod ribbon;
 mod save_types;
@@ -414,7 +414,7 @@ pub struct WordApp {
     pub canvas: canvas::CanvasState,
     /// The Restrict Editing pane (#412).
     pub(crate) restrict: restrict_pane::RestrictPane,
-    /// The Remove Watermarks pane, for the whole app (it is not kept per window).
+    /// The Remove Watermarks pane: each window has its own, like Restrict Editing.
     pub(crate) clean: clean_pane::CleanPane,
     /// The language-aware spelling and grammar task pane.
     pub spelling_review: Option<proofing_pane::SpellingForm>,

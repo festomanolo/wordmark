@@ -136,7 +136,7 @@ pub(crate) fn scan(app: &mut WordApp, path: String) {
             let found = st.picked.iter().filter(|p| **p).count();
             let unsure = st.candidates.iter().filter(|c| c.decision == "review").count();
             let msg = crate::i18n::fmt(
-                tl!("{found} texts look like watermarks; {unsure} are unsure. Tick the ones that are."),
+                tl!("Watermarks found: {found}. Not sure: {unsure}. Tick every text that is a watermark."),
                 &[("found", &found.to_string()), ("unsure", &unsure.to_string())],
             );
             app.status(msg.clone());
@@ -182,9 +182,10 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             let pages = st.needs_ocr.iter().map(u64::to_string).collect::<Vec<_>>().join(", ");
             Notice::new(
                 Tone::Bad,
-                crate::i18n::fmt(tl!("Pages {pages} are scanned pictures with no text: run OCR on the PDF first, or they come out empty."), &[(
-                    "pages", &pages,
-                )]),
+                crate::i18n::fmt(
+                    tl!("Pages {pages} are scanned pictures with no text: run OCR on the PDF first, or they come out empty."),
+                    &[("pages", &pages)],
+                ),
             )
             .show(ui);
         }
@@ -212,13 +213,12 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             if Button::new(tl!("Open Without Watermarks")).show(ui).clicked() {
                 open_cleaned(app, st);
             }
-            if Button::new(tl!("Learn Only")).enabled(learnable).show(ui).clicked() {
-                if learn(app, st) {
-                    let path = st.path.clone();
-                    app.clean = std::mem::take(st);
-                    scan(app, path);
-                    *st = std::mem::take(&mut app.clean);
-                }
+            // Scanned again after learning, so the list shows what the detector now thinks.
+            if Button::new(tl!("Learn Only")).enabled(learnable).show(ui).clicked() && learn(app, st) {
+                let path = st.path.clone();
+                app.clean = std::mem::take(st);
+                scan(app, path);
+                *st = std::mem::take(&mut app.clean);
             }
         });
         if !learnable {
@@ -255,7 +255,8 @@ fn candidate_list(ui: &mut Ui, st: &mut CleanPane) {
     }
 }
 
-/// "DRAFT COPY · pages 1–6 · 92%, watermark": the verdict in words, not only a number.
+/// "92% watermark · DRAFT COPY · pages 1–6": the verdict first, in words as well as a number, so a
+/// narrow pane cuts off the text rather than the verdict.
 fn row_label(c: &Candidate) -> String {
     let pages = match (c.pages.first(), c.pages.last()) {
         (Some(a), Some(b)) if a != b => crate::i18n::fmt(tl!("pages {a}–{b}"), &[("a", &a.to_string()), ("b", &b.to_string())]),
@@ -268,7 +269,7 @@ fn row_label(c: &Candidate) -> String {
         _ => tl!("content"),
     };
     let text: String = c.text.chars().take(80).collect();
-    format!("{text} · {pages} · {:.0}%, {verdict}", c.score * 100.0)
+    format!("{:.0}% {verdict} · {text} · {pages}", c.score * 100.0)
 }
 
 fn url_choice(ui: &mut Ui, st: &mut CleanPane) {
@@ -293,7 +294,7 @@ fn learn(app: &mut WordApp, st: &mut CleanPane) -> bool {
     match app.run("clean.learn", p) {
         Ok(r) => {
             let n = r["learned"].as_u64().unwrap_or(0);
-            let msg = crate::i18n::fmt(tl!("Learned from {n} picks."), &[("n", &n.to_string())]);
+            let msg = crate::i18n::fmt(tl!("Picks learned: {n}."), &[("n", &n.to_string())]);
             app.status(msg.clone());
             st.say(msg, false);
             true
@@ -319,13 +320,13 @@ fn open_cleaned(app: &mut WordApp, st: &mut CleanPane) {
             let removed = r["removed"].as_u64().unwrap_or(0);
             let urls = r["urlsRemoved"].as_u64().unwrap_or(0);
             let unsure = r["flagged"].as_array().map_or(0, Vec::len);
-            let mut msg = crate::i18n::fmt(tl!("Opened without {removed} watermark texts and {urls} web addresses."), &[
-                ("removed", &removed.to_string()),
-                ("urls", &urls.to_string()),
-            ]);
+            let mut msg = crate::i18n::fmt(
+                tl!("Opened. Watermark texts removed: {removed}. Web addresses removed: {urls}."),
+                &[("removed", &removed.to_string()), ("urls", &urls.to_string())],
+            );
             if unsure > 0 && !st.drop_unsure {
                 msg.push(' ');
-                msg.push_str(&crate::i18n::fmt(tl!("{n} unsure texts were kept."), &[("n", &unsure.to_string())]));
+                msg.push_str(&crate::i18n::fmt(tl!("Unsure texts kept: {n}."), &[("n", &unsure.to_string())]));
             }
             if r["needsOcr"].as_array().is_some_and(|a| !a.is_empty()) {
                 msg.push(' ');
@@ -350,10 +351,10 @@ fn document_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
                 Ok(r) => {
                     let n = r["learnedTextRemoved"].as_u64().unwrap_or(0) + u64::from(r["watermarkRemoved"].as_bool().unwrap_or(false));
                     let links = r["linksUnlinked"].as_u64().unwrap_or(0) + r["urlsRemoved"].as_u64().unwrap_or(0);
-                    let msg = crate::i18n::fmt(tl!("Removed {n} watermarks and {links} links or web addresses."), &[
-                        ("n", &n.to_string()),
-                        ("links", &links.to_string()),
-                    ]);
+                    let msg = crate::i18n::fmt(
+                        tl!("Watermarks removed: {n}. Links and web addresses removed: {links}."),
+                        &[("n", &n.to_string()), ("links", &links.to_string())],
+                    );
                     app.status(msg.clone());
                     st.say(msg, false);
                 }

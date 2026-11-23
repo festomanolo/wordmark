@@ -15,6 +15,8 @@ use crate::{CmdError, CmdResult, CommandSpec, Session, p};
 
 /// The largest PDF read (bytes); a bigger one is refused rather than held in memory.
 const MAX_PDF: u64 = 512 * 1024 * 1024;
+/// The largest learned model file read (bytes).
+const MAX_MODEL: u64 = 64 * 1024 * 1024;
 /// How many candidates a scan lists by default, and at most.
 const DEFAULT_LIMIT: u64 = 30;
 const MAX_LIMIT: u64 = 500;
@@ -38,9 +40,14 @@ pub(crate) fn specs() -> Vec<CommandSpec> {
 /// The model `v` names (`model`), or the starting model.
 fn model(v: &Value) -> Result<Model, CmdError> {
     match p::str(v, "model").filter(|m| !m.is_empty()) {
-        Some(path) => {
+        // A model file not written yet is a new model.
+        Some(path) if !std::path::Path::new(path).exists() => {
             crate::file_access::check_read(path).map_err(CmdError::Failed)?;
-            Model::load(std::path::Path::new(path)).map_err(CmdError::Failed)
+            Ok(Model::default())
+        }
+        Some(path) => {
+            let bytes = crate::io::read_file_capped(path, MAX_MODEL, "model").map_err(CmdError::Failed)?;
+            serde_json::from_slice(&bytes).map_err(|e| CmdError::Failed(format!("{path}: {e}")))
         }
         None => Ok(Model::default()),
     }
@@ -49,12 +56,7 @@ fn model(v: &Value) -> Result<Model, CmdError> {
 /// The pages of the PDF `v` names (`path`, `password`).
 fn read_pdf(v: &Value) -> Result<(String, Vec<PageText>), CmdError> {
     let path = p::req_str(v, "path")?;
-    crate::file_access::check_read(path).map_err(CmdError::Failed)?;
-    let size = std::fs::metadata(path).map_err(|e| CmdError::Failed(format!("{path}: {e}")))?.len();
-    if size > MAX_PDF {
-        return Err(CmdError::Failed(format!("{path} is larger than {} MB", MAX_PDF / (1024 * 1024))));
-    }
-    let bytes = std::fs::read(path).map_err(|e| CmdError::Failed(format!("{path}: {e}")))?;
+    let bytes = crate::io::read_file_capped(path, MAX_PDF, "PDF").map_err(CmdError::Failed)?;
     if !bytes.starts_with(b"%PDF") && !bytes.windows(5).take(1024).any(|w| w == b"%PDF-") {
         return Err(CmdError::Failed(format!("{path} is not a PDF")));
     }
@@ -102,10 +104,8 @@ fn scan(_: &mut Session, v: &Value) -> CmdResult {
     let model = model(v)?;
     let (path, pages) = read_pdf(v)?;
     let found = wordcraft_clean::candidates(&pages, &model, limit(v));
-    let candidates: Vec<Value> = found
-        .iter()
-        .map(|c| json!({"text": c.text, "pages": c.pages, "score": c.score, "decision": decision_name(model.decide(c.score))}))
-        .collect();
+    let candidates: Vec<Value> =
+        found.iter().map(|c| json!({"text": c.text, "pages": c.pages, "score": c.score, "decision": decision_name(model.decide(c.score))})).collect();
     Ok(json!({
         "path": path,
         "pages": pages.len(),
@@ -159,10 +159,7 @@ fn learn(_: &mut Session, v: &Value) -> CmdResult {
     let mut model = model(v)?;
     let (_, pages) = read_pdf(v)?;
     let (learned, missing) = teach(&mut model, &pages, v)?;
-    if let Some(dir) = std::path::Path::new(&model_path).parent().filter(|d| !d.as_os_str().is_empty()) {
-        std::fs::create_dir_all(dir).map_err(|e| CmdError::Failed(format!("{}: {e}", dir.display())))?;
-    }
-    std::fs::write(&model_path, model.to_json()).map_err(|e| CmdError::Failed(format!("{model_path}: {e}")))?;
+    crate::io::write_file(&model_path, model.to_json().as_bytes()).map_err(CmdError::Failed)?;
     Ok(json!({"learned": learned, "examples": model.examples.len(), "model": model_path, "notFound": missing}))
 }
 

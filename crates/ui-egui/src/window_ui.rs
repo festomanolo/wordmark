@@ -20,6 +20,7 @@ use crate::{Status, WordApp, backstage, canvas, chrome, colors, dialogs, file_di
 pub(crate) struct WindowUi {
     pub(crate) canvas: canvas::CanvasState,
     pub(crate) restrict: crate::restrict_pane::RestrictPane,
+    pub(crate) clean: crate::clean_pane::CleanPane,
     pub(crate) spelling_review: Option<crate::proofing_pane::SpellingForm>,
     pub(crate) status: Option<Status>,
     /// Announcement belonging to this document window.
@@ -74,6 +75,7 @@ impl WindowUi {
         WindowUi {
             canvas: Default::default(),
             restrict: Default::default(),
+            clean: Default::default(),
             spelling_review: None,
             status: None,
             announcement: None,
@@ -136,8 +138,6 @@ impl WordApp {
             // App-wide.
             // A close operation walks every window's documents, so it outlives a window swap.
             closing: _,
-            // The Remove Watermarks pane looks at a PDF, not at a window's document.
-            clean: _,
             session: _,
             services: _,
             host: _,
@@ -187,6 +187,7 @@ impl WordApp {
             ui,
             canvas,
             restrict,
+            clean,
             spelling_review,
             status,
             announcement,
@@ -285,6 +286,7 @@ impl WordApp {
         swap_fields!(w:
             canvas,
             restrict,
+            clean,
             spelling_review,
             status,
             announcement,
