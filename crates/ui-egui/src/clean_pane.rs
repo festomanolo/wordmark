@@ -161,7 +161,7 @@ fn groups(objects: &[Value]) -> Vec<Group> {
                 decision: decision.to_string(),
             });
             out.len() - 1
-                out.last_mut().expect("just pushed")
+        });
             }
         };
         g.ids.push(id.to_string());
