@@ -50,8 +50,6 @@ pub(crate) struct Batch {
 
 impl Default for Batch {
     fn default() -> Self {
-        Batch {
-            dir: String::new(),
             subfolders: true,
             notify: true,
             run: None,
