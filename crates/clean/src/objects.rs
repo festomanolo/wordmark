@@ -661,7 +661,6 @@ fn group(found: &[Vec<Found>], spots: &[Vec<[f64; 4]>]) -> Groups {
     let mut by_kind: HashMap<(Kind, String), Vec<usize>> = HashMap::new();
     for (n, &(p, i)) in flat.iter().enumerate() {
         let f = &found[p][i];
-        let n = at[&(p, i)];
         let ident = match f.obj.kind {
             Kind::Text => text_key(f),
             Kind::Link => f.uri.as_deref().map(link_host),
