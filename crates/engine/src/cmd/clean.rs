@@ -356,7 +356,6 @@ pub fn clean_folder_files(
 /// `clean.folder`: clean every PDF in a folder with what the model has learned.
 fn folder(_: &mut Session, v: &Value) -> CmdResult {
     let dir = p::req_str(v, "dir")?;
-    let out = p::str(v, "out").filter(|o| !o.is_empty()).map_or_else(|| default_folder_out(dir), str::to_string);
     let subfolders = v.get("subfolders").and_then(Value::as_bool).unwrap_or(true);
     let jobs = folder_jobs(dir, &out, subfolders).map_err(CmdError::Failed)?;
     let model = p::str(v, "model");
