@@ -155,7 +155,7 @@ fn groups(objects: &[Value]) -> Vec<Group> {
                 ids: Vec::new(),
                 kind: kind.to_string(),
                 text: o["text"].as_str().unwrap_or_default().to_string(),
-                    kind: kind.to_string(),
+                pages: Vec::new(),
                     text: o["text"].as_str().unwrap_or_default().to_string(),
                     pages: Vec::new(),
                     boxes: Vec::new(),
