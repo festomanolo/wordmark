@@ -72,6 +72,8 @@ pub(crate) enum AfterPick {
     Font,
     /// Scan the picked PDF in the Remove Watermarks pane.
     WatermarkedPdf,
+    /// Write the Remove Watermarks pane's PDF there without the ticked items.
+    CleanPdf,
     /// Import the picked Word bibliography file (`b:Sources`: Word's `Sources.xml`) into the
     /// document through Manage Sources (#2640).
     #[cfg(not(target_arch = "wasm32"))]
@@ -283,6 +285,11 @@ impl WordApp {
                 let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
                 crate::clean_pane::scan(self, path);
                 Ok(json!({"scanned": true}))
+            }
+            AfterPick::CleanPdf => {
+                let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
+                crate::clean_pane::save_to(self, path);
+                Ok(json!({"saved": true}))
             }
             #[cfg(not(target_arch = "wasm32"))]
             AfterPick::Sources => {
@@ -524,6 +531,15 @@ impl WordApp {
     pub(crate) fn pick_watermarked_pdf(&mut self) {
         let req = PickRequest::open("pdf").filter(tl!("PDF"), &["pdf"]);
         let _ = self.ask_file(req, AfterPick::WatermarkedPdf);
+    }
+
+    /// Ask where to save the Remove Watermarks pane's PDF without the ticked items: beside it,
+    /// named `<name>-clean.pdf`.
+    pub(crate) fn pick_clean_pdf_out(&mut self) {
+        let from = std::path::Path::new(&self.clean.path);
+        let stem = from.file_stem().map_or_else(|| "document".to_string(), |s| s.to_string_lossy().into_owned());
+        let req = PickRequest::save("export").file_name(format!("{stem}-clean.pdf")).suggested_extension("pdf").filter(tl!("PDF"), &["pdf"]);
+        let _ = self.ask_file(req, AfterPick::CleanPdf);
     }
 
     /// Pick one or more font files to add (Add Font…).

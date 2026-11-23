@@ -82,9 +82,9 @@ pub struct PageObject {
     pub text: String,
     /// A picture's size in pixels.
     pub pixels: Option<[u32; 2]>,
-    /// What is learned when a person marks it: the same for the look-alikes on other pages and in
-    /// other files from the same source.
-    pub key: String,
+    /// What is learned when a person marks it (what it reads, links to or holds, and where it
+    /// sits): the same for the look-alikes on other pages and in other files from the same source.
+    pub keys: Vec<String>,
     /// Objects that are the same thing on different pages share a group (the first one's id).
     pub group: String,
     pub score: f32,
@@ -563,7 +563,7 @@ fn object(id: String, index: usize, kind: Kind, bbox: [f32; 4], text: String) ->
         bbox,
         text,
         pixels: None,
-        key: String::new(),
+        keys: Vec::new(),
         group: String::new(),
         score: 0.0,
         decision: Decision::Keep,
@@ -694,17 +694,25 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
             }
         }
     }
-    let mut group_pages: HashMap<usize, HashSet<usize>> = HashMap::new();
+    let mut members: HashMap<usize, Vec<usize>> = HashMap::new();
     let mut group_first: HashMap<usize, String> = HashMap::new();
     for (n, &(p, i)) in flat.iter().enumerate() {
         let r = root(&mut parent, n);
-        group_pages.entry(r).or_default().insert(p);
+        members.entry(r).or_default().push(n);
         group_first.entry(r).or_insert_with(|| found[p][i].obj.id.clone());
+    }
+    // On how many pages the same thing sits in the same spot (a footer, a corner logo): the same
+    // line elsewhere on another page is not a repeat.
+    let mut repeat_pages: Vec<usize> = vec![1; flat.len()];
+    for (n, &(p, i)) in flat.iter().enumerate() {
+        let r = root(&mut parent, n);
+        let pages: HashSet<usize> = members[&r].iter().map(|&m| flat[m]).filter(|&(q, j)| q == p || same_spot(spots[p][i], spots[q][j])).map(|(q, _)| q).collect();
+        repeat_pages[n] = pages.len();
     }
 
     for (n, &(p, i)) in flat.iter().enumerate() {
         let r = root(&mut parent, n);
-        let pages_with = group_pages.get(&r).map_or(1, HashSet::len);
+        let pages_with = repeat_pages[n];
         let page_area = f64::from(sizes[p][0]) * f64::from(sizes[p][1]);
         let s = spots[p][i];
         // The page's own pictures (a scan) and the links on it, from the same page.
@@ -754,8 +762,10 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
                     add(&mut z, &mut why, -6.0, "invisible text (OCR layer)");
                 }
                 let over_scan = backgrounds.iter().any(|(order, bb)| f.order > *order && overlap(f.user_box, *bb) && *bb != f.user_box);
+                // A picture pasted over a scan is the commonest stamp; text over a full-page
+                // picture is as often a designed page's real text, so it only leans.
                 if over_scan && !f.invisible {
-                    add(&mut z, &mut why, 3.5, "drawn over the page picture");
+                    add(&mut z, &mut why, if f.obj.kind == Kind::Text { 0.5 } else { 3.5 }, "drawn over the page picture");
                 }
                 if repeats {
                     add(&mut z, &mut why, 2.0, "on most pages");
@@ -808,7 +818,7 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
         obj.score = score;
         obj.decision = model.decide(score);
         obj.reasons = why.into_iter().map(str::to_string).collect();
-        obj.key = ks.into_iter().next().unwrap_or_default();
+        obj.keys = ks;
         obj.group = group_first.get(&r).cloned().unwrap_or_default();
     }
 }
@@ -838,7 +848,7 @@ pub fn scan(bytes: &[u8], password: Option<&str>, model: &Model) -> Result<Scan,
 /// The keys under which `ids` (from [`scan`] of the same file) are learned.
 pub fn keys_of(scan: &Scan, ids: &[String]) -> Vec<String> {
     let want: HashSet<&str> = ids.iter().map(String::as_str).collect();
-    let mut out: Vec<String> = scan.objects.iter().filter(|o| want.contains(o.id.as_str())).map(|o| o.key.clone()).filter(|k| !k.is_empty()).collect();
+    let mut out: Vec<String> = scan.objects.iter().filter(|o| want.contains(o.id.as_str())).flat_map(|o| o.keys.iter().cloned()).collect();
     out.sort();
     out.dedup();
     out

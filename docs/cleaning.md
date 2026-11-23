@@ -18,26 +18,38 @@ wordcraft-cli clean-review ./clean/clean-report.json
 
 Design › Watermark › **Find and Remove Watermarks…** opens the Remove Watermarks pane:
 
-1. **Choose PDF…** reads the PDF and lists its texts, most watermark-like first. Each row says
-   how sure the detector is and what it would do: *watermark*, *not sure* or *content*.
-   Watermarks are ticked already.
-2. Tick every text that is a watermark, and untick any that isn't. A plain line such as
-   "Licensed copy for …" usually needs ticking the first time.
-3. **Open Without Watermarks** keeps your picks in the model and opens the PDF as a new, unsaved,
-   editable document without the ticked texts, with web addresses removed, unlinked or kept as
-   chosen. **Learn Only** keeps the picks and scans again, so you can see what was learned.
+1. **Choose PDF…** reads the PDF and finds what is drawn over its pages: pictures (a site's
+   logo pasted over a scanned page), text (a scanner app's name in the corner), link areas and
+   watermark or stamp annotations.
+2. **Check the pages** shows each page with a box round everything found. A crossed box is
+   removed, a dashed box is one the detector is not sure of (kept unless ticked), a thin box is
+   kept. Previous Page and Next Page move through the file.
+3. **Tick what to remove.** Things that are the same on several pages (a footer on every page)
+   are one row: "95% watermark · Picture, bottom right · pages 1–3". Ticking a row shows its
+   page. The page's own picture (the scan) and ordinary body text are not listed.
+4. **Save Clean PDF…** writes a new PDF without the ticked items. Nothing else changes: the
+   scan, fonts and layout of every page stay as they were. The file is written in full, so the
+   removed items are not left behind in an older revision of it, and pictures no page draws any
+   more are left out. **Learn Only** keeps the picks and scans again.
 
 What you tick is remembered in `watermark-model.json` in the app's settings folder, the same file
-format `--model` takes. The next PDF from the same source is cleaned without asking, even when its
-licence line names someone else. **Clean This Document** cleans the document that is open: its
-watermark, learned watermark texts, links and web addresses. Undo puts them back.
+format `--model` takes. Pictures are remembered by their pixels and by where they sit on the
+page, links by their site, text by what it reads, so the next PDF from the same source is marked
+without asking, even when its logo is a different picture file.
+
+**Open as Editable Document** instead rebuilds the PDF's text as paragraphs, without the ticked
+text, with web addresses removed, unlinked or kept as chosen. Pictures are not carried over, so a
+scanned PDF comes out empty: save a clean PDF for those. **Clean This Document** cleans the
+document that is open: its watermark, learned watermark texts, links and web addresses. Undo puts
+them back.
 
 Agents get the same results through the commands the pane runs:
 
 | Command | Does |
 | --- | --- |
-| `clean.scan {path}` | lists the PDF's texts with `score` and `decision` |
-| `clean.learn {path, model, watermarks, content?}` | teaches the model and saves it |
+| `clean.scan {path}` | lists the PDF's texts (`candidates`) and the objects drawn on its pages (`objects`: `id`, `page`, `kind`, `bbox`, `text`, `group`, `score`, `decision`, `reasons`), with `pageSizes` |
+| `clean.learn {path, model, watermarks?, content?, watermarkObjects?, contentObjects?}` | teaches the model texts and objects (by id) and saves it |
+| `clean.savePdf {path, out, remove?, keep?}` | writes the PDF without what the model removes, plus the `remove` ids, less the `keep` ids |
 | `clean.openPdf {path, model?, watermarks?, content?, urls?, dropFlagged?}` | opens the PDF rebuilt without its watermarks |
 | `clean.document {model?, urls?}` | cleans the open document |
 
@@ -53,6 +65,23 @@ inside its roots.
 | .docx, .doc, .odt, .rtf, .html, .md… | The document's own watermark (Design › Watermark) is removed, along with paragraphs and phrases that read like a watermark someone marked, then links and web addresses. Body, tables, headers, footers and notes are all cleaned. |
 
 The output format is `--format`: docx by default, or odt, rtf, md, html, txt, pdf or json.
+
+## How a page object is judged
+
+`clean.scan`'s `objects` are scored from these signals (each object's `reasons` names the ones
+that applied):
+
+| Signal | Means |
+| --- | --- |
+| drawn over the page picture | a picture drawn after, and on top of, a picture that covers the page (a logo pasted on a scan). Text over such a picture only leans this way: a designed page's real text often sits on a background picture |
+| on most pages | the same thing in the same spot on at least half the pages |
+| page margin | in the top or bottom tenth, or the outer side strips |
+| under a link | overlaps a link area |
+| web link | a link to a web address (links within the document are kept) |
+| see-through, turned, pale, large, middle of the page | as for text spans below |
+| page picture | (against) covers 40% of the page or more: the page itself |
+| invisible text | (against) an OCR layer |
+| marked as a watermark / content before | what the model learned |
 
 ## How a span is judged
 
@@ -110,6 +139,9 @@ features of its pages are computed in parallel.
 - A scanned page with no text layer is a picture. Its words, and a watermark baked into the
   picture's pixels, are not read. The report lists those pages under `needs_ocr`, and `clean`
   warns about them. Run OCR on the file first; a scan with an OCR layer is read through that layer.
+- Saving a clean PDF removes whole objects. A watermark baked into a scan's pixels, or drawn
+  with vector paths, is not found; pictures and text inside a form XObject are removed with
+  their form, as one object.
 - A rebuilt PDF keeps its text, paragraphs and headings. Pictures, tables (read as lines of
   text), columns (read across, line by line) and fonts are not carried over yet.
 - Links in a PDF are not carried into the rebuilt document. Web addresses in its text are removed
