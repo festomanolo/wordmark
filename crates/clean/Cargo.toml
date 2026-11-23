@@ -10,7 +10,7 @@ workspace = true
 
 [dependencies]
 wordcraft-doc = { workspace = true }
-craft-pdf = { workspace = true, features = ["read", "interpret"] }
+craft-pdf = { workspace = true, features = ["read", "interpret", "content", "raster"] }
 kurbo = { workspace = true }
 regex = { workspace = true }
 rayon = { workspace = true }
