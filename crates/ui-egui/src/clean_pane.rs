@@ -100,9 +100,6 @@ pub(crate) struct CleanPane {
     pub save_target: Option<String>,
     /// What Clean This Document did, shown under its button.
     pub doc_message: String,
-    /// Bring the page preview into view on the next frame (a file opened from the folder list,
-    /// which sits above it).
-    pub show_pages: bool,
 }
 
 impl CleanPane {
@@ -275,11 +272,6 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     batch_section(app, ui, st);
     if st.path.is_empty() || st.page_sizes.is_empty() {
         return;
-    }
-    // Only on the pass that draws: a measuring pass would use the request up unseen.
-    if st.show_pages && !ui.is_sizing_pass() && ui.is_visible() {
-        st.show_pages = false;
-        ui.scroll_to_cursor(Some(egui::Align::TOP));
     }
     Section::fixed(tl!("2. Check the pages")).show(ui, |ui, _| {
         page_nav(ui, st);
@@ -690,7 +682,9 @@ pub(crate) fn set_folder(app: &mut WordApp, folder: &str, out: Option<&str>, sta
 /// The folder section, and what its buttons ask for.
 fn batch_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     use crate::clean_batch::Action;
-    match crate::clean_batch::section(ui, &mut st.batch) {
+    let action =
+        if st.save_target.is_some() { crate::clean_batch::checking(ui, &st.batch, &st.path) } else { crate::clean_batch::section(ui, &mut st.batch) };
+    match action {
         Action::None => {}
         Action::ChooseFolder => {
             app.clean = std::mem::take(st);
@@ -712,7 +706,10 @@ fn batch_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             scan(app, input);
             *st = std::mem::take(&mut app.clean);
             st.save_target = Some(output);
-            st.show_pages = true;
+        }
+        Action::Back => {
+            // The file stays open; the list comes back above it.
+            st.save_target = None;
         }
     }
 }

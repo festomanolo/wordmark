@@ -86,6 +86,8 @@ pub(crate) enum Action {
         input: String,
         output: String,
     },
+    /// Stop checking and show the folder's list again.
+    Back,
 }
 
 /// The words a run's notification uses, translated before the run (the worker thread has no
@@ -196,6 +198,40 @@ pub(crate) fn section(ui: &mut Ui, b: &mut Batch) -> Action {
         if let Some(a) = progress(ui, b) {
             action = a;
         }
+    });
+    action
+}
+
+/// The files the run left to check, `(input, output)`, by name.
+fn to_check(b: &Batch) -> Vec<(String, String)> {
+    let Some(s) = b.run.as_ref().and_then(|r| r.lock().ok()) else { return Vec::new() };
+    let mut v: Vec<(String, String)> =
+        s.files.iter().filter(|f| f.error.is_empty() && f.unsure > 0).map(|f| (f.input.clone(), f.output.clone())).collect();
+    v.sort();
+    v
+}
+
+/// The section while `input`, a file of the run, is open to be checked: one line instead of the
+/// list, so the file's pages come right after it.
+pub(crate) fn checking(ui: &mut Ui, b: &Batch, input: &str) -> Action {
+    let mut action = Action::None;
+    let files = to_check(b);
+    let left = files.iter().filter(|(i, _)| i != input && !b.checked.contains(i)).count();
+    Section::fixed(tl!("Checking a file from the folder")).show(ui, |ui, _| {
+        Text::new(crate::i18n::fmt(tl!("{name}. Files left to check: {left}."), &[("name", &relative(&b.dir, input)), ("left", &left.to_string())]))
+            .show(ui);
+        Row::new().show(ui, |ui, _| {
+            let at = files.iter().position(|(i, _)| i == input);
+            let next = files.iter().cycle().skip(at.map_or(0, |a| a + 1)).take(files.len()).find(|(i, _)| i != input && !b.checked.contains(i));
+            if Button::new(tl!("Next File")).enabled(next.is_some()).show(ui).clicked()
+                && let Some((i, o)) = next
+            {
+                action = Action::Check { input: i.clone(), output: o.clone() };
+            }
+            if Button::new(tl!("Back to Folder List")).show(ui).clicked() {
+                action = Action::Back;
+            }
+        });
     });
     action
 }
