@@ -205,7 +205,7 @@ fn picked_ids(st: &CleanPane) -> (Vec<String>, Vec<String>) {
     for (g, on) in st.groups.iter().zip(&st.picked) {
         if *on {
             remove.extend(g.ids.iter().cloned());
-        } else if g.decision == "remove" {
+        } else if g.decision == "remove" || g.decision == "review" {
             keep.extend(g.ids.iter().cloned());
         }
     }
