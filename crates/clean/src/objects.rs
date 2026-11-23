@@ -840,6 +840,13 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
     for o in found.iter_mut().flatten().map(|f| &mut f.obj) {
         if let Some(&b) = best.get(&o.group)
             && b > o.score
+            && !o.reasons.iter().any(|r| r == "marked as content before")
+        {
+            o.score = b;
+            o.decision = model.decide(b);
+            o.reasons.push("as on its other pages".to_string());
+        }
+    }
 }
 
 /// Every object of the PDF's pages with how much it looks like a watermark. `password` opens an
