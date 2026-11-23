@@ -268,24 +268,31 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             Text::new(crate::i18n::fmt(tl!("{name}, {pages} pages"), &[("name", &file_name(&st.path)), ("pages", &st.pages.to_string())])).show(ui);
         }
     });
-    if st.candidates.is_empty() {
+    if st.path.is_empty() || st.page_sizes.is_empty() {
         return;
     }
-    Section::fixed(tl!("2. Tick the watermarks")).show(ui, |ui, _| {
-        Text::new(tl!("Ticked texts are removed and taught to the detector. \"Not sure\" texts stay unless you tick them.")).show(ui);
-        Row::new().show(ui, |ui, _| {
-            if Button::new(tl!("All")).show(ui).clicked() {
-                st.picked.iter_mut().for_each(|p| *p = true);
-            }
-            if Button::new(tl!("None")).show(ui).clicked() {
-                st.picked.iter_mut().for_each(|p| *p = false);
-            }
-        });
-        candidate_list(ui, st);
+    Section::fixed(tl!("2. Check the pages")).show(ui, |ui, _| {
+        page_nav(ui, st);
+        page_preview(app, ui, st);
+        Text::new(tl!("Crossed boxes are removed. Dashed boxes: not sure, kept unless you tick them.")).show(ui);
     });
-    Section::fixed(tl!("3. Open without watermarks")).show(ui, |ui, _| {
-        url_choice(ui, st);
-        Checkbox::new(Bind::bound(&mut st.drop_unsure)).label(tl!("Also remove unticked text it is unsure of")).show(ui);
+    Section::fixed(tl!("3. Tick what to remove")).show(ui, |ui, _| {
+        if st.groups.is_empty() {
+            Text::new(tl!("Nothing is drawn over these pages.")).show(ui);
+        } else {
+            Row::new().show(ui, |ui, _| {
+                if Button::new(tl!("All")).show(ui).clicked() {
+                    st.picked.iter_mut().for_each(|p| *p = true);
+                }
+                if Button::new(tl!("None")).show(ui).clicked() {
+                    st.picked.iter_mut().for_each(|p| *p = false);
+                }
+            });
+            group_list(ui, st);
+        }
+    });
+    Section::fixed(tl!("4. Save")).show(ui, |ui, _| {
+        Text::new(tl!("A new PDF without the ticked items. The rest of each page stays exactly as it was.")).show(ui);
         let learnable = model_path(app).is_some();
         Row::new().show(ui, |ui, _| {
             if Button::new(tl!("Open Without Watermarks")).show(ui).clicked() {
