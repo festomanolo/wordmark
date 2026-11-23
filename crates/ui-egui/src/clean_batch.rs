@@ -228,6 +228,10 @@ pub(crate) fn checking(ui: &mut Ui, b: &Batch, input: &str) -> Action {
             {
                 action = Action::Check { input: i.clone(), output: o.clone() };
             }
+            if Button::new(tl!("Back to Folder List")).show(ui).clicked() {
+                action = Action::Back;
+            }
+        });
 /// How far the run has got, and what it left for a person.
 fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
     let run = b.run.as_ref()?;
