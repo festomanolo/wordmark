@@ -46,7 +46,13 @@ pub(crate) fn specs() -> Vec<CommandSpec> {
 
 /// The model `v` names (`model`), or the starting model.
 fn model(v: &Value) -> Result<Model, CmdError> {
-    match p::str(v, "model").filter(|m| !m.is_empty()) {
+    load_model(p::str(v, "model")).map_err(CmdError::Failed)
+}
+
+/// The learned model in the file at `path`, or the starting model (no file named, or not written
+/// yet).
+pub fn load_model(path: Option<&str>) -> Result<Model, String> {
+    match path.filter(|m| !m.is_empty()) {
         // A model file not written yet is a new model.
         Some(path) if !std::path::Path::new(path).exists() => {
             crate::file_access::check_read(path).map_err(CmdError::Failed)?;
