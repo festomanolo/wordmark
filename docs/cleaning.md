@@ -69,7 +69,7 @@ Agents get the same results through the commands the pane runs:
 | `clean.document {model?, urls?}` | cleans the open document |
 
 `ui.dialog {"name": "removeWatermarks", "path": "file.pdf"}` opens the pane already scanning a
-PDF; `{"name": "removeWatermarks", "folder": "dir", "out"?: "dir", "start"?: true}` sets the
+PDF; `{"name": "removeWatermarks", "folder": "dir", "start"?: true}` sets the
 folder to clean (and starts it). Confined automation (`--automation-read-root`/`--automation-write-root`) reaches only files
 inside its roots.
 
