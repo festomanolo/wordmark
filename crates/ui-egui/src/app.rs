@@ -51,6 +51,7 @@ impl WordApp {
         let window_ui::WindowUi {
             canvas,
             restrict,
+            clean,
             spelling_review,
             status,
             announcement,
