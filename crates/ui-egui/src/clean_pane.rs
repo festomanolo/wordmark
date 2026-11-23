@@ -198,7 +198,7 @@ fn base_params(app: &WordApp, st: &CleanPane) -> Value {
 }
 
 /// The ids of the ticked groups, and of the unticked ones the model would remove or was unsure
-/// The ids of the ticked groups, and of the unticked ones the model would remove (the person
+/// of (the person overruled it, or looked and left it), which are learned as content so the
 /// overruled it).
 fn picked_ids(st: &CleanPane) -> (Vec<String>, Vec<String>) {
     let (mut remove, mut keep) = (Vec::new(), Vec::new());
