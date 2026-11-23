@@ -637,23 +637,19 @@ fn sigmoid(z: f32) -> f32 {
     1.0 / (1.0 + (-z).exp())
 }
 
-/// Score every object of a document and group the look-alikes across pages.
-fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
-    let n_pages = found.len().max(1);
-    // Median text size, for "much larger than the body".
-    let mut text_sizes: Vec<f64> = found.iter().flatten().filter(|f| f.obj.kind == Kind::Text && f.font_size > 0.0).map(|f| f.font_size).collect();
-    text_sizes.sort_by(f64::total_cmp);
-    let body = text_sizes.get(text_sizes.len() / 2).copied().unwrap_or(0.0);
+/// The look-alikes across pages: every object as `(page, index)`, its group's root, the id that
+/// names each group, and on how many pages the same thing sits in the same spot.
+struct Groups {
+    flat: Vec<(usize, usize)>,
+    root: Vec<usize>,
+    name: HashMap<usize, String>,
+    repeat_pages: Vec<usize>,
+}
 
-    // Spots and keys of every object, for repeats and groups.
-    let spots: Vec<Vec<[f64; 4]>> =
-        found.iter().enumerate().map(|(p, fs)| fs.iter().map(|f| spot(&f.obj, sizes.get(p).copied().unwrap_or([1.0, 1.0]))).collect()).collect();
-    let text_key = |f: &Found| (f.obj.kind == Kind::Text && !f.obj.text.trim().is_empty()).then(|| normalize(&f.obj.text));
-
-    // Group: same kind and (same text, same link host, same picture data, or same spot) on
-    // another page. Union-find over (page, index).
+/// Group: same kind and (same text, same link host, same picture data, or same spot) on another
+/// page. Union-find over (page, index).
+fn group(found: &[Vec<Found>], spots: &[Vec<[f64; 4]>]) -> Groups {
     let flat: Vec<(usize, usize)> = found.iter().enumerate().flat_map(|(p, fs)| (0..fs.len()).map(move |i| (p, i))).collect();
-    let at: HashMap<(usize, usize), usize> = flat.iter().enumerate().map(|(n, k)| (*k, n)).collect();
     let mut parent: Vec<usize> = (0..flat.len()).collect();
     fn root(parent: &mut [usize], mut x: usize) -> usize {
         while parent[x] != x {
@@ -663,11 +659,10 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
         x
     }
     let mut by_kind: HashMap<(Kind, String), Vec<usize>> = HashMap::new();
-    for &(p, i) in &flat {
+    for (n, &(p, i)) in flat.iter().enumerate() {
         let f = &found[p][i];
-        let n = at[&(p, i)];
         let ident = match f.obj.kind {
-            Kind::Text => text_key(f),
+            Kind::Text => (!f.obj.text.trim().is_empty()).then(|| normalize(&f.obj.text)),
             Kind::Link => f.uri.as_deref().map(link_host),
             Kind::Image | Kind::Graphic => Some(format!("{:016x}", f.image_hash)),
             Kind::Stamp => Some(normalize(&f.obj.text)),
@@ -690,135 +685,177 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
             continue;
         }
         for (y, &(q, j)) in flat.iter().enumerate().skip(x + 1) {
-            let g = &found[q][j];
-            if q != p && g.obj.kind == f.obj.kind && same_spot(spots[p][i], spots[q][j]) {
+            if q != p && found[q][j].obj.kind == f.obj.kind && same_spot(spots[p][i], spots[q][j]) {
                 let (a, b) = (root(&mut parent, x), root(&mut parent, y));
                 parent[a] = b;
             }
         }
     }
+    let roots: Vec<usize> = (0..flat.len()).map(|n| root(&mut parent, n)).collect();
     let mut members: HashMap<usize, Vec<usize>> = HashMap::new();
-    let mut group_first: HashMap<usize, String> = HashMap::new();
+    let mut name: HashMap<usize, String> = HashMap::new();
     for (n, &(p, i)) in flat.iter().enumerate() {
-        let r = root(&mut parent, n);
-        members.entry(r).or_default().push(n);
-        group_first.entry(r).or_insert_with(|| found[p][i].obj.id.clone());
+        members.entry(roots[n]).or_default().push(n);
+        name.entry(roots[n]).or_insert_with(|| found[p][i].obj.id.clone());
     }
     // On how many pages the same thing sits in the same spot (a footer, a corner logo): the same
     // line elsewhere on another page is not a repeat.
-    let mut repeat_pages: Vec<usize> = vec![1; flat.len()];
-    for (n, &(p, i)) in flat.iter().enumerate() {
-        let r = root(&mut parent, n);
-        let pages: HashSet<usize> =
-            members[&r].iter().map(|&m| flat[m]).filter(|&(q, j)| q == p || same_spot(spots[p][i], spots[q][j])).map(|(q, _)| q).collect();
-        repeat_pages[n] = pages.len();
-    }
+    let repeat_pages = flat
+        .iter()
+        .enumerate()
+        .map(|(n, &(p, i))| {
+            members[&roots[n]]
+                .iter()
+                .map(|&m| flat[m])
+                .filter(|&(q, j)| q == p || same_spot(spots[p][i], spots[q][j]))
+                .map(|(q, _)| q)
+                .collect::<HashSet<_>>()
+                .len()
+        })
+        .collect();
+    Groups { flat, root: roots, name, repeat_pages }
+}
 
-    for (n, &(p, i)) in flat.iter().enumerate() {
-        let r = root(&mut parent, n);
-        let pages_with = repeat_pages[n];
-        let page_area = f64::from(sizes[p][0]) * f64::from(sizes[p][1]);
-        let s = spots[p][i];
-        // The page's own pictures (a scan) and the links on it, from the same page.
-        let (backgrounds, links): (Vec<(usize, [f64; 4])>, Vec<[f64; 4]>) = {
-            let fs = &found[p];
-            (
-                fs.iter()
-                    .filter(|g| g.obj.kind == Kind::Image && area(g.user_box) >= BACKGROUND_SHARE * page_area)
-                    .map(|g| (g.order, g.user_box))
-                    .collect(),
-                fs.iter().filter(|g| g.obj.kind == Kind::Link).map(|g| g.user_box).collect(),
-            )
-        };
-        let f = &found[p][i];
-        let mut z: f32;
-        let mut why: Vec<&'static str> = Vec::new();
-        let b = f.obj.bbox.map(f64::from);
-        let [w, h] = sizes[p].map(f64::from);
-        let edge = b[3] <= EDGE_BAND * h || b[1] >= (1.0 - EDGE_BAND) * h || b[2] <= SIDE_BAND * w || b[0] >= (1.0 - SIDE_BAND) * w;
-        let centred = (s[0] - 0.5).abs() < 0.15 && (s[1] - 0.5).abs() < 0.15;
-        let repeats = pages_with >= 2 && pages_with * 2 >= n_pages;
-        match f.obj.kind {
-            Kind::Link => {
-                if f.internal_link {
-                    z = -4.0;
-                    why.push("internal link");
-                } else {
-                    // Links out of the document are what "remove links" means.
-                    z = 1.5;
-                    why.push("web link");
-                    if edge {
-                        add(&mut z, &mut why, 1.0, "page margin");
-                    }
-                    if repeats {
-                        add(&mut z, &mut why, 1.0, "on most pages");
-                    }
-                }
+/// What an object's page tells about it: the page's size, its own pictures (a scan) and links,
+/// and the body text size.
+struct PageFacts {
+    size: [f64; 2],
+    backgrounds: Vec<(usize, [f64; 4])>,
+    links: Vec<[f64; 4]>,
+    body: f64,
+}
+
+impl PageFacts {
+    fn of(found: &[Found], size: [f32; 2], body: f64) -> PageFacts {
+        let size = size.map(f64::from);
+        let page_area = size[0] * size[1];
+        PageFacts {
+            size,
+            backgrounds: found
+                .iter()
+                .filter(|g| g.obj.kind == Kind::Image && area(g.user_box) >= BACKGROUND_SHARE * page_area)
+                .map(|g| (g.order, g.user_box))
+                .collect(),
+            links: found.iter().filter(|g| g.obj.kind == Kind::Link).map(|g| g.user_box).collect(),
+            body,
+        }
+    }
+}
+
+/// How much `f` looks like a watermark before learning (log-odds), with the signals that said
+/// so. `s` is its spot; `repeats`: it sits in the same spot on most pages.
+fn weigh(f: &Found, s: [f64; 4], page: &PageFacts, repeats: bool) -> (f32, Vec<&'static str>) {
+    let mut why: Vec<&'static str> = Vec::new();
+    let b = f.obj.bbox.map(f64::from);
+    let [w, h] = page.size;
+    let edge = b[3] <= EDGE_BAND * h || b[1] >= (1.0 - EDGE_BAND) * h || b[2] <= SIDE_BAND * w || b[0] >= (1.0 - SIDE_BAND) * w;
+    let z = match f.obj.kind {
+        Kind::Link if f.internal_link => {
+            why.push("internal link");
+            -4.0
+        }
+        Kind::Link => {
+            // Links out of the document are what "remove links" means.
+            let mut z = 1.5;
+            why.push("web link");
+            if edge {
+                add(&mut z, &mut why, 1.0, "page margin");
             }
-            Kind::Stamp => {
-                z = if f.font_size > 0.0 { 4.0 } else { 0.0 };
-                why.push(if f.font_size > 0.0 { "watermark annotation" } else { "stamp annotation" });
+            if repeats {
+                add(&mut z, &mut why, 1.0, "on most pages");
             }
-            Kind::Image | Kind::Graphic | Kind::Text => {
-                z = -3.0;
-                let size_share = area(f.user_box) / page_area.max(1.0);
-                if f.obj.kind == Kind::Image && size_share >= BACKGROUND_SHARE {
-                    add(&mut z, &mut why, -6.0, "page picture");
-                }
-                if f.invisible {
-                    add(&mut z, &mut why, -6.0, "invisible text (OCR layer)");
-                }
-                let over_scan = backgrounds.iter().any(|(order, bb)| f.order > *order && overlap(f.user_box, *bb) && *bb != f.user_box);
-                // A picture pasted over a scan is the commonest stamp; text over a full-page
-                // picture is as often a designed page's real text, so it only leans.
-                if over_scan && !f.invisible {
-                    add(&mut z, &mut why, if f.obj.kind == Kind::Text { 0.5 } else { 3.5 }, "drawn over the page picture");
-                }
-                if repeats {
-                    add(&mut z, &mut why, 2.0, "on most pages");
-                }
-                if edge {
-                    add(&mut z, &mut why, 1.5, "page margin");
-                }
-                if links.iter().any(|l| overlap(f.user_box, *l)) {
-                    add(&mut z, &mut why, 2.0, "under a link");
-                }
-                if f.see_through {
-                    add(&mut z, &mut why, 0.7, "see-through");
-                }
-                if f.turned {
-                    add(&mut z, &mut why, 1.5, "turned");
-                }
-                if centred {
-                    add(&mut z, &mut why, 0.8, "middle of the page");
-                }
-                if f.obj.kind == Kind::Text {
-                    let norm = normalize(&f.obj.text);
-                    if crate::urls::contains_url(&norm) {
-                        add(&mut z, &mut why, 1.5, "web address");
-                    }
-                    if f.light {
-                        add(&mut z, &mut why, 0.8, "pale");
-                    }
-                    if body > 0.0 && f.font_size > 2.5 * body {
-                        add(&mut z, &mut why, 0.8, "large");
-                    }
-                } else if size_share < 0.03 && size_share > 0.0 {
-                    add(&mut z, &mut why, 0.5, "small");
-                }
+            z
+        }
+        Kind::Stamp => {
+            why.push(if f.font_size > 0.0 { "watermark annotation" } else { "stamp annotation" });
+            if f.font_size > 0.0 { 4.0 } else { 0.0 }
+        }
+        Kind::Image | Kind::Graphic | Kind::Text => weigh_drawn(f, s, page, edge, repeats, &mut why),
+    };
+    (z, why)
+}
+
+/// [`weigh`] for what is drawn on the page: pictures, graphics and text.
+fn weigh_drawn(f: &Found, s: [f64; 4], page: &PageFacts, edge: bool, repeats: bool, why: &mut Vec<&'static str>) -> f32 {
+    let mut z = -3.0;
+    let size_share = area(f.user_box) / (page.size[0] * page.size[1]).max(1.0);
+    if f.obj.kind == Kind::Image && size_share >= BACKGROUND_SHARE {
+        add(&mut z, why, -6.0, "page picture");
+    }
+    if f.invisible {
+        add(&mut z, why, -6.0, "invisible text (OCR layer)");
+    }
+    let over_scan = page.backgrounds.iter().any(|(order, bb)| f.order > *order && overlap(f.user_box, *bb) && *bb != f.user_box);
+    // A picture pasted over a scan is the commonest stamp; text over a full-page picture is as
+    // often a designed page's real text, so it only leans.
+    if over_scan && !f.invisible {
+        add(&mut z, why, if f.obj.kind == Kind::Text { 0.5 } else { 3.5 }, "drawn over the page picture");
+    }
+    let centred = (s[0] - 0.5).abs() < 0.15 && (s[1] - 0.5).abs() < 0.15;
+    for (on, weight, name) in [
+        (repeats, 2.0, "on most pages"),
+        (edge, 1.5, "page margin"),
+        (page.links.iter().any(|l| overlap(f.user_box, *l)), 2.0, "under a link"),
+        (f.see_through, 0.7, "see-through"),
+        (f.turned, 1.5, "turned"),
+        (centred, 0.8, "middle of the page"),
+    ] {
+        if on {
+            add(&mut z, why, weight, name);
+        }
+    }
+    if f.obj.kind == Kind::Text {
+        for (on, weight, name) in [
+            (crate::urls::contains_url(&normalize(&f.obj.text)), 1.5, "web address"),
+            (f.light, 0.8, "pale"),
+            (page.body > 0.0 && f.font_size > 2.5 * page.body, 0.8, "large"),
+        ] {
+            if on {
+                add(&mut z, why, weight, name);
             }
         }
-        // What a person marked before: by what it reads, links to or holds, or where it sits.
-        let ks = keys(f, s);
-        let text_norm = (matches!(f.obj.kind, Kind::Text | Kind::Stamp) && !f.obj.text.is_empty()).then(|| normalize(&f.obj.text));
-        let learned_mark = ks.iter().any(|k| model.watermark_objects.contains(k))
-            || text_norm.as_deref().is_some_and(|t| model.watermark_texts.iter().any(|w| similarity(t, w) >= LEARNED_MATCH));
-        let learned_keep = ks.iter().any(|k| model.content_objects.contains(k))
-            || text_norm.as_deref().is_some_and(|t| model.content_texts.iter().any(|w| similarity(t, w) >= LEARNED_MATCH));
-        if learned_keep {
-            add(&mut z, &mut why, -8.0, "marked as content before");
-        } else if learned_mark {
-            add(&mut z, &mut why, 5.0, "marked as a watermark before");
+    } else if size_share < 0.03 && size_share > 0.0 {
+        add(&mut z, why, 0.5, "small");
+    }
+    z
+}
+
+/// What a person marked before, by what `f` reads, links to or holds (`keys`), or where it
+/// sits: `Some(true)` a watermark, `Some(false)` content.
+fn learned(model: &Model, f: &Found, keys: &[String]) -> Option<bool> {
+    let text = (matches!(f.obj.kind, Kind::Text | Kind::Stamp) && !f.obj.text.is_empty()).then(|| normalize(&f.obj.text));
+    let like = |list: &[String]| text.as_deref().is_some_and(|t| list.iter().any(|w| similarity(t, w) >= LEARNED_MATCH));
+    if keys.iter().any(|k| model.content_objects.contains(k)) || like(&model.content_texts) {
+        Some(false)
+    } else if keys.iter().any(|k| model.watermark_objects.contains(k)) || like(&model.watermark_texts) {
+        Some(true)
+    } else {
+        None
+    }
+}
+
+/// Score every object of a document and group the look-alikes across pages.
+fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
+    let n_pages = found.len().max(1);
+    // Median text size, for "much larger than the body".
+    let mut text_sizes: Vec<f64> = found.iter().flatten().filter(|f| f.obj.kind == Kind::Text && f.font_size > 0.0).map(|f| f.font_size).collect();
+    text_sizes.sort_by(f64::total_cmp);
+    let body = text_sizes.get(text_sizes.len() / 2).copied().unwrap_or(0.0);
+    let size = |p: usize| sizes.get(p).copied().unwrap_or([1.0, 1.0]);
+    let spots: Vec<Vec<[f64; 4]>> = found.iter().enumerate().map(|(p, fs)| fs.iter().map(|f| spot(&f.obj, size(p))).collect()).collect();
+    let groups = group(found, &spots);
+    let facts: Vec<PageFacts> = found.iter().enumerate().map(|(p, fs)| PageFacts::of(fs, size(p), body)).collect();
+
+    for (n, &(p, i)) in groups.flat.iter().enumerate() {
+        let pages_with = groups.repeat_pages[n];
+        let repeats = pages_with >= 2 && pages_with * 2 >= n_pages;
+        let f = &found[p][i];
+        let (mut z, mut why) = weigh(f, spots[p][i], &facts[p], repeats);
+        let ks = keys(f, spots[p][i]);
+        match learned(model, f, &ks) {
+            Some(false) => add(&mut z, &mut why, -8.0, "marked as content before"),
+            Some(true) => add(&mut z, &mut why, 5.0, "marked as a watermark before"),
+            None => {}
         }
         let score = sigmoid(z);
         let obj = &mut found[p][i].obj;
@@ -826,12 +863,15 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
         obj.decision = model.decide(score);
         obj.reasons = why.into_iter().map(str::to_string).collect();
         obj.keys = ks;
-        obj.group = group_first.get(&r).cloned().unwrap_or_default();
+        obj.group = groups.name.get(&groups.root[n]).cloned().unwrap_or_default();
     }
+    one_verdict_per_group(found, model);
+}
 
-    // The same thing on several pages is one thing: it takes its strongest page's verdict on
-    // every page (a header drawn over the scan on some pages and before it on others), unless a
-    // person marked it as content.
+/// The same thing on several pages is one thing: it takes its strongest page's verdict on every
+/// page (a header drawn over the scan on some pages and before it on others), unless a person
+/// marked it as content.
+fn one_verdict_per_group(found: &mut [Vec<Found>], model: &Model) {
     let mut best: HashMap<String, f32> = HashMap::new();
     for o in found.iter().flatten().map(|f| &f.obj) {
         let b = best.entry(o.group.clone()).or_insert(o.score);
@@ -981,7 +1021,7 @@ pub fn render_page(bytes: &[u8], password: Option<&str>, page: usize, max_side: 
     use craft_pdf::raster::{self, Options, RenderCache};
     let pdf = craft_pdf::open_slice(bytes, password).map_err(|e| e.to_string())?;
     let pages = pdf.pages();
-    let p = pages.iter().nth(page).ok_or_else(|| format!("the PDF has no page {}", page + 1))?;
+    let p = pages.get(page).ok_or_else(|| format!("the PDF has no page {}", page + 1))?;
     let one = Options { background: [255, 255, 255, 255], ..Options::default() };
     let [w, h] = raster::dimensions(p, &one).map_err(|e| e.to_string())?;
     let side = w.max(h).max(1) as f32;
