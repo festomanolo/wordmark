@@ -1957,6 +1957,8 @@ dependencies = [
  "sha2 0.11.1",
  "stringprep",
  "thiserror 2.0.21",
+ "wasm-bindgen",
+ "zeroize",
 ]
 
 [[package]]
