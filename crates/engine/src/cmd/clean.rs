@@ -238,6 +238,26 @@ pub fn folder_jobs(dir: &str, out: &str, subfolders: bool) -> Result<Vec<(String
     crate::file_access::check_read(dir)?;
     crate::file_access::check_write(out)?;
     let root = Path::new(dir);
+    if !root.is_dir() {
+        return Err(format!("{dir} is not a folder"));
+    }
+    let out_root = Path::new(out);
+    let same = |a: &Path, b: &Path| match (a.canonicalize(), b.canonicalize()) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => a == b,
+    };
+    if same(root, out_root) {
+        return Err("the clean copies need a folder of their own: choose another output folder".into());
+    }
+    let mut found: Vec<PathBuf> = Vec::new();
+    let mut todo: Vec<(PathBuf, usize)> = vec![(root.to_path_buf(), 0)];
+    while let Some((d, depth)) = todo.pop() {
+        if same(&d, out_root) {
+            continue;
+        }
+        let entries = std::fs::read_dir(&d).map_err(|e| format!("{}: {e}", d.display()))?;
+        for e in entries.flatten() {
+            let name = e.file_name().to_string_lossy().into_owned();
 /// The largest preview side (pixels).
 const MAX_PREVIEW_SIDE: u32 = 2400;
 
