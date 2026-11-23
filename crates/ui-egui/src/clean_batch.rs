@@ -71,7 +71,6 @@ impl Batch {
 pub(crate) enum Action {
     None,
     ChooseFolder,
-    ChooseOut,
     Start,
     /// Open this file in the pane to check it; saving writes `output`.
     Check {
