@@ -41,7 +41,8 @@ without asking, even when its logo is a different picture file.
 **Or clean a whole folder:** **Choose Folder…** picks a folder of PDFs, and **Start Cleaning**
 cleans every PDF in it (and in its subfolders, unless that is unticked) with what has been
 learned. Each clean copy is saved next to its PDF, wherever it is in the folder tree, named
-(**Change Output Folder…** picks another; the originals are never written over). A bar shows how
+`<name>-clean.pdf` (the originals are never written over, and a later run skips the `-clean`
+copies). A bar shows how
 far it has got, and **Stop** stops it after the files under way. What the detector is sure of is
 removed; a file with things it is not sure of is written with them kept and listed with a
 **Check** button, which opens it in the pane with its pages marked, and **Save to Clean Folder**
