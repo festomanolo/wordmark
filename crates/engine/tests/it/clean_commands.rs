@@ -111,3 +111,38 @@ fn naming_a_text_the_pdf_does_not_have_fails_instead_of_learning_nothing() {
     assert!(!model.exists(), "no model was written");
     let _ = std::fs::remove_dir_all(dir);
 }
+
+/// The ids of `scan`'s objects whose text starts with `starts`, by page.
+fn object_ids(scan: &Value, starts: &str) -> Vec<(u64, String)> {
+    scan["objects"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|o| o["text"].as_str().is_some_and(|t| t.starts_with(starts)))
+        .map(|o| (o["page"].as_u64().unwrap(), o["id"].as_str().unwrap().to_string()))
+        .collect()
+}
+
+#[test]
+fn a_saved_pdf_loses_what_was_picked_and_keeps_what_was_kept() {
+    let dir = scratch("save");
+    let input = write_pdf(&dir, "in.pdf", "Alice Moyo");
+    let out = dir.join("out.pdf").to_string_lossy().into_owned();
+    let mut s = Session::new(Document::new());
+    let scan = s.run("clean.scan", &json!({"path": input})).unwrap();
+    let stamps = object_ids(&scan, "DRAFT COPY");
+    let licences = object_ids(&scan, "Licensed copy");
+    assert_eq!((stamps.len(), licences.len()), (3, 3), "{scan:#}");
+    let on = |ids: &[(u64, String)], page: u64| ids.iter().find(|(p, _)| *p == page).map(|(_, id)| id.clone()).unwrap();
+
+    // Page 1's stamp is kept against the model; page 2's licence line is removed though the
+    // model would keep it.
+    let saved = s.run("clean.savePdf", &json!({"path": input, "out": out, "keep": [on(&stamps, 1)], "remove": [on(&licences, 2)]})).unwrap();
+    assert_eq!(saved["removed"], 3, "{saved:#}");
+
+    let after = s.run("clean.scan", &json!({"path": out})).unwrap();
+    let pages = |ids: Vec<(u64, String)>| ids.into_iter().map(|(p, _)| p).collect::<Vec<_>>();
+    assert_eq!(pages(object_ids(&after, "DRAFT COPY")), [1]);
+    assert_eq!(pages(object_ids(&after, "Licensed copy")), [1, 3]);
+    assert!(pages(object_ids(&after, "Page ")).len() == 3, "the body text stays on every page");
+}
