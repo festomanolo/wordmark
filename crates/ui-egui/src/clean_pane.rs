@@ -676,6 +676,9 @@ pub(crate) fn set_folder(app: &mut WordApp, folder: &str, out: Option<&str>, sta
         && let Some(ctx) = ctx
     {
         crate::clean_batch::start(&ctx, b, model);
+    }
+}
+
 /// The folder section, and what its buttons ask for.
 fn batch_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     use crate::clean_batch::Action;
