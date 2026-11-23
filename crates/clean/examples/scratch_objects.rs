@@ -1,5 +1,3 @@
-        );
-    }
     if let Some(out) = args.get(2) {
         let ids: Vec<String> = scan.objects.iter().filter(|o| o.decision == wordcraft_clean::Decision::Remove).map(|o| o.id.clone()).collect();
         let (pdf, r) = wordcraft_clean::objects::remove(&bytes, None, &ids).unwrap();
