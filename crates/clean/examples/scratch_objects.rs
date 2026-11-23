@@ -1,6 +1,3 @@
-    let bytes = std::fs::read(&args[1]).unwrap();
-    let model = wordcraft_clean::Model::default();
-    let scan = wordcraft_clean::objects::scan(&bytes, None, &model).unwrap();
     println!("pages {:?} unreadable {:?}", scan.pages, scan.unreadable);
     for o in &scan.objects {
         println!(
