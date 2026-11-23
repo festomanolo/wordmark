@@ -218,6 +218,26 @@ pub struct FolderFile {
 }
 
 impl FolderFile {
+    pub fn to_json(&self) -> Value {
+        json!({"input": self.input, "output": self.output, "removed": self.removed, "unsure": self.unsure, "error": self.error})
+    }
+}
+
+/// Where `clean.folder` writes by default: a folder beside `dir`, named `<dir>-clean`.
+pub fn default_folder_out(dir: &str) -> String {
+    let d = std::path::Path::new(dir.trim_end_matches(['/', '\\']));
+    let name = d.file_name().map_or_else(|| "pdfs".to_string(), |n| n.to_string_lossy().into_owned());
+    d.with_file_name(format!("{name}-clean")).to_string_lossy().into_owned()
+}
+
+/// The PDFs in `dir` (and its subfolders when `subfolders`), each with the path it is written to
+/// under `out` (the same place relative to `out` as to `dir`), sorted. The output folder is not
+/// looked into, links to folders are not followed, and hidden files are left out.
+pub fn folder_jobs(dir: &str, out: &str, subfolders: bool) -> Result<Vec<(String, String)>, String> {
+    use std::path::{Path, PathBuf};
+    crate::file_access::check_read(dir)?;
+    crate::file_access::check_write(out)?;
+    let root = Path::new(dir);
 /// The largest preview side (pixels).
 const MAX_PREVIEW_SIDE: u32 = 2400;
 
