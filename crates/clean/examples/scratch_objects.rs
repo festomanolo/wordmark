@@ -1,6 +1,3 @@
-    println!("pages {:?} unreadable {:?}", scan.pages, scan.unreadable);
-    for o in &scan.objects {
-        println!(
             "{:6} {:7} {:>4.0}% {:?} g={} bbox={:?} px={:?} {:?} keys={:?} why={:?}",
             o.id,
             o.kind.name(),
