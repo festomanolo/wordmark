@@ -637,13 +637,14 @@ fn sigmoid(z: f32) -> f32 {
     1.0 / (1.0 + (-z).exp())
 }
 
-/// Score every object of a document and group the look-alikes across pages.
-fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
-    let n_pages = found.len().max(1);
-    // Median text size, for "much larger than the body".
-    let mut text_sizes: Vec<f64> = found.iter().flatten().filter(|f| f.obj.kind == Kind::Text && f.font_size > 0.0).map(|f| f.font_size).collect();
-    text_sizes.sort_by(f64::total_cmp);
-    let body = text_sizes.get(text_sizes.len() / 2).copied().unwrap_or(0.0);
+/// The look-alikes across pages: every object as `(page, index)`, its group's root, the id that
+/// names each group, and on how many pages the same thing sits in the same spot.
+struct Groups {
+    flat: Vec<(usize, usize)>,
+    root: Vec<usize>,
+    name: HashMap<usize, String>,
+    repeat_pages: Vec<usize>,
+}
 
     // Spots and keys of every object, for repeats and groups.
     let spots: Vec<Vec<[f64; 4]>> =
