@@ -168,5 +168,7 @@ fn each_pdf_in_a_folder_tree_gets_its_clean_copy_beside_it_and_a_second_run_leav
     let original = s.run("clean.scan", &json!({"path": a})).unwrap();
     assert_eq!(object_ids(&original, "DRAFT COPY").len(), 3, "the original is untouched");
 
+    // The copies are not cleaned again into -clean-clean files.
+    let again = s.run("clean.folder", &json!({"dir": dir_s})).unwrap();
     assert!(s.run("clean.folder", &json!({"dir": dir_s, "out": dir_s})).is_err(), "writing over the originals is refused");
 }
