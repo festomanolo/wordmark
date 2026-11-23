@@ -1,15 +1,17 @@
-//! The Remove Watermarks pane: pick a PDF, tick the texts that are its watermarks, and open it
-//! rebuilt as an editable document without them. What is ticked teaches the model, so the next
-//! PDF from the same source is cleaned without asking. It also cleans the open document. Every
-//! action runs a `clean.*` command ([`wordcraft_engine::cmd::clean`]).
+//! The Remove Watermarks pane: pick a PDF, see its pages with what looks like a watermark marked
+//! (a logo pasted over a scan, a scanner app's footer, link areas, stamps), tick what to remove,
+//! and save the PDF without it: everything else on each page stays as it was. What is ticked
+//! teaches the model, so the next PDF from the same source is marked without asking. The PDF can
+//! also be opened rebuilt as an editable document, and the open document cleaned. Every action
+//! runs a `clean.*` command ([`wordcraft_engine::cmd::clean`]).
 
-use craft::behavior::{ColumnKey, ColumnWidth, EditEvent, keyed};
+use craft::behavior::{ColumnKey, ColumnWidth, EditEvent, Input, Metrics, Sense, keyed};
 use craft::theme::variant::Tone;
 use craft::ui::buttons::Button;
 use craft::ui::choice::Checkbox;
 use craft::ui::contract::{
-    Bind, CollectionEvent, ColumnSpec, Entry, Props as _, SelectMode, Show as _, ShowCollection as _, ShowContainer as _, Sizing, SpaceAction,
-    ToggleColumn,
+    Bind, CollectionEvent, ColumnSpec, Common, Component, Cx, Entry, MeasureCx, PaintUi, Props, Props as _, Role, SelectMode, Show as _, ShowCollection as _,
+    ShowContainer as _, Sizing, SpaceAction, ToggleColumn,
 };
 use craft::ui::display::Text;
 use craft::ui::layout_components::Row;
