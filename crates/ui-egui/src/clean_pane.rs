@@ -151,7 +151,7 @@ fn groups(objects: &[Value]) -> Vec<Group> {
         let group = o["group"].as_str().unwrap_or(id).to_string();
         let score = o["score"].as_f64().unwrap_or(0.0);
         let at = *at.entry(group).or_insert_with(|| {
-            None => {
+            out.push(Group {
                 at.insert(group, out.len());
                 out.push(Group {
                     ids: Vec::new(),
