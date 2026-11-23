@@ -293,6 +293,21 @@ impl WordApp {
                 crate::clean_pane::save_to(self, path);
                 Ok(json!({"saved": true}))
             }
+            AfterPick::CleanFolder { out } => {
+                let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
+                let b = &mut self.clean.batch;
+                if out {
+                    b.out = path;
+                } else {
+                    // A new folder: the last run's results were for the old one.
+                    b.dir = path;
+                    b.out.clear();
+                    b.run = None;
+                    b.checked.clear();
+                }
+                self.clean.open = true;
+                Ok(json!({"picked": true}))
+            }
             #[cfg(not(target_arch = "wasm32"))]
             AfterPick::Sources => {
                 let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
