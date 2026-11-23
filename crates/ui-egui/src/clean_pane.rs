@@ -520,8 +520,20 @@ fn group_list(ui: &mut Ui, st: &mut CleanPane) {
 /// Where on the page a box sits, in words: "bottom right", "middle".
 fn place(b: [f32; 4], size: [f32; 2]) -> String {
     let (x, y) = ((b[0] + b[2]) / 2.0 / size[0].max(1.0), (b[1] + b[3]) / 2.0 / size[1].max(1.0));
-    let row = if y < 1.0 / 3.0 { 0 } else if y < 2.0 / 3.0 { 1 } else { 2 };
-    let col = if x < 1.0 / 3.0 { 0 } else if x < 2.0 / 3.0 { 1 } else { 2 };
+    let row = if y < 1.0 / 3.0 {
+        0
+    } else if y < 2.0 / 3.0 {
+        1
+    } else {
+        2
+    };
+    let col = if x < 1.0 / 3.0 {
+        0
+    } else if x < 2.0 / 3.0 {
+        1
+    } else {
+        2
+    };
     let words = [["top left", "top", "top right"], ["left", "middle", "right"], ["bottom left", "bottom", "bottom right"]];
     tl!(words[row][col]).to_string()
 }
