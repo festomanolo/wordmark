@@ -213,6 +213,10 @@ fn to_check(b: &Batch) -> Vec<(String, String)> {
 
 /// The section while `input`, a file of the run, is open to be checked: one line instead of the
 /// list, so the file's pages come right after it.
+pub(crate) fn checking(ui: &mut Ui, b: &Batch, input: &str) -> Action {
+    let mut action = Action::None;
+    let files = to_check(b);
+    let left = files.iter().filter(|(i, _)| i != input && !b.checked.contains(i)).count();
 /// How far the run has got, and what it left for a person.
 fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
     let run = b.run.as_ref()?;
