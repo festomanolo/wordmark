@@ -72,6 +72,8 @@ pub(crate) enum AfterPick {
     Font,
     /// Scan the picked PDF in the Remove Watermarks pane.
     WatermarkedPdf,
+    /// Write the Remove Watermarks pane's PDF there without the ticked items.
+    CleanPdf,
     /// Import the picked Word bibliography file (`b:Sources`: Word's `Sources.xml`) into the
     /// document through Manage Sources (#2640).
     #[cfg(not(target_arch = "wasm32"))]
