@@ -146,3 +146,29 @@ fn a_saved_pdf_loses_what_was_picked_and_keeps_what_was_kept() {
     assert_eq!(pages(object_ids(&after, "Licensed copy")), [1, 3]);
     assert!(pages(object_ids(&after, "Page ")).len() == 3, "the body text stays on every page");
 }
+
+#[test]
+fn a_folder_is_cleaned_into_a_folder_beside_it_with_its_subfolders_and_the_originals_kept() {
+    let base = scratch("folder");
+    let dir = base.join("papers");
+    std::fs::create_dir_all(dir.join("term 2")).unwrap();
+    let a = write_pdf(&dir, "a.pdf", "Alice Moyo");
+    write_pdf(&dir.join("term 2"), "b.PDF", "Baraka Juma");
+    std::fs::write(dir.join("notes.txt"), "not a pdf").unwrap();
+    let dir_s = dir.to_string_lossy().into_owned();
+    let mut s = Session::new(Document::new());
+
+    let r = s.run("clean.folder", &json!({"dir": dir_s})).unwrap();
+    assert_eq!((r["pdfs"].as_u64(), r["failed"].as_u64()), (Some(2), Some(0)), "{r:#}");
+    let out = std::path::PathBuf::from(r["out"].as_str().unwrap());
+    assert_ne!(out, dir, "the copies don't overwrite the originals");
+    for written in [out.join("a.pdf"), out.join("term 2").join("b.PDF")] {
+        let scan = s.run("clean.scan", &json!({"path": written.to_string_lossy()})).unwrap();
+        assert!(object_ids(&scan, "DRAFT COPY").is_empty(), "{} still has the stamp", written.display());
+        assert_eq!(object_ids(&scan, "Page ").len(), 3, "the body text stays");
+    }
+    let original = s.run("clean.scan", &json!({"path": a})).unwrap();
+    assert_eq!(object_ids(&original, "DRAFT COPY").len(), 3, "the original is untouched");
+
+    assert!(s.run("clean.folder", &json!({"dir": dir_s, "out": dir_s})).is_err(), "writing over the originals is refused");
+}

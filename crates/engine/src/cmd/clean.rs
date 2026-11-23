@@ -33,6 +33,9 @@ pub(crate) fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("clean.savePdf", "Save PDF Without Watermarks", "Design › Watermark › Remove Watermarks", save_pdf)
             .params(r#"{"path": string (a PDF), "out": string (the PDF written), "password"?: string, "model"?: string, "remove"?: [string] (object ids from clean.scan to remove as well), "keep"?: [string] (object ids to keep although the model would remove them)}"#)
             .pure(),
+        CommandSpec::new("clean.folder", "Clean a Folder of PDFs", "Design › Watermark › Remove Watermarks", folder)
+            .params(r#"{"dir": string (a folder of PDFs), "out"?: string (folder written, default: beside it, named <dir>-clean), "subfolders"?: bool (default true), "password"?: string, "model"?: string}"#)
+            .pure(),
         CommandSpec::new("clean.openPdf", "Open PDF Without Watermarks", "Design › Watermark › Remove Watermarks", open_pdf)
             .params(r#"{"path": string (a PDF), "password"?: string, "model"?: string, "urls"?: "remove|unlink|keep" (default remove), "dropFlagged"?: bool (also drop text it is unsure of), "pageBreaks"?: bool (default true), "watermarks"?: [string], "content"?: [string], "limit"?: number (as clean.learn, for this call only)}"#)
             .pure(),
@@ -43,15 +46,21 @@ pub(crate) fn specs() -> Vec<CommandSpec> {
 
 /// The model `v` names (`model`), or the starting model.
 fn model(v: &Value) -> Result<Model, CmdError> {
-    match p::str(v, "model").filter(|m| !m.is_empty()) {
+    load_model(p::str(v, "model")).map_err(CmdError::Failed)
+}
+
+/// The learned model in the file at `path`, or the starting model (no file named, or not written
+/// yet).
+pub fn load_model(path: Option<&str>) -> Result<Model, String> {
+    match path.filter(|m| !m.is_empty()) {
         // A model file not written yet is a new model.
         Some(path) if !std::path::Path::new(path).exists() => {
-            crate::file_access::check_read(path).map_err(CmdError::Failed)?;
+            crate::file_access::check_read(path)?;
             Ok(Model::default())
         }
         Some(path) => {
-            let bytes = crate::io::read_file_capped(path, MAX_MODEL, "model").map_err(CmdError::Failed)?;
-            serde_json::from_slice(&bytes).map_err(|e| CmdError::Failed(format!("{path}: {e}")))
+            let bytes = crate::io::read_file_capped(path, MAX_MODEL, "model")?;
+            serde_json::from_slice(&bytes).map_err(|e| format!("{path}: {e}"))
         }
         None => Ok(Model::default()),
     }
@@ -186,6 +195,186 @@ fn save_pdf(_: &mut Session, v: &Value) -> CmdResult {
         "links": done.links,
         "stamps": done.stamps,
         "notFound": done.not_found,
+    }))
+}
+
+/// The most PDFs `clean.folder` takes from one folder; a bigger one is refused, not cut short.
+const MAX_FOLDER_FILES: usize = 20_000;
+/// How deep `clean.folder` goes into subfolders.
+const MAX_FOLDER_DEPTH: usize = 32;
+
+/// One PDF of a folder, cleaned by [`clean_folder_files`].
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FolderFile {
+    pub input: String,
+    pub output: String,
+    /// Things removed.
+    pub removed: usize,
+    /// Things it was not sure of (counted once however many pages they are on): kept in the
+    /// output for a person to check.
+    pub unsure: usize,
+    /// Empty when the file was cleaned and written.
+    pub error: String,
+}
+
+impl FolderFile {
+    pub fn to_json(&self) -> Value {
+        json!({"input": self.input, "output": self.output, "removed": self.removed, "unsure": self.unsure, "error": self.error})
+    }
+}
+
+/// Where `clean.folder` writes by default: a folder beside `dir`, named `<dir>-clean`.
+pub fn default_folder_out(dir: &str) -> String {
+    let d = std::path::Path::new(dir.trim_end_matches(['/', '\\']));
+    let name = d.file_name().map_or_else(|| "pdfs".to_string(), |n| n.to_string_lossy().into_owned());
+    d.with_file_name(format!("{name}-clean")).to_string_lossy().into_owned()
+}
+
+/// The PDFs in `dir` (and its subfolders when `subfolders`), each with the path it is written to
+/// under `out` (the same place relative to `out` as to `dir`), sorted. The output folder is not
+/// looked into, links to folders are not followed, and hidden files are left out.
+pub fn folder_jobs(dir: &str, out: &str, subfolders: bool) -> Result<Vec<(String, String)>, String> {
+    use std::path::{Path, PathBuf};
+    crate::file_access::check_read(dir)?;
+    crate::file_access::check_write(out)?;
+    let root = Path::new(dir);
+    if !root.is_dir() {
+        return Err(format!("{dir} is not a folder"));
+    }
+    let out_root = Path::new(out);
+    let same = |a: &Path, b: &Path| match (a.canonicalize(), b.canonicalize()) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => a == b,
+    };
+    if same(root, out_root) {
+        return Err("the clean copies need a folder of their own: choose another output folder".into());
+    }
+    let mut found: Vec<PathBuf> = Vec::new();
+    let mut todo: Vec<(PathBuf, usize)> = vec![(root.to_path_buf(), 0)];
+    while let Some((d, depth)) = todo.pop() {
+        if same(&d, out_root) {
+            continue;
+        }
+        let entries = std::fs::read_dir(&d).map_err(|e| format!("{}: {e}", d.display()))?;
+        for e in entries.flatten() {
+            let name = e.file_name().to_string_lossy().into_owned();
+            if name.starts_with('.') {
+                continue;
+            }
+            let Ok(kind) = e.file_type() else { continue };
+            let path = e.path();
+            if kind.is_dir() {
+                if subfolders && depth < MAX_FOLDER_DEPTH {
+                    todo.push((path, depth + 1));
+                }
+            } else if Path::new(&name).extension().is_some_and(|x| x.eq_ignore_ascii_case("pdf")) && (kind.is_file() || path.is_file()) {
+                found.push(path);
+                if found.len() > MAX_FOLDER_FILES {
+                    return Err(format!("{dir} has more than {MAX_FOLDER_FILES} PDFs: clean it a part at a time"));
+                }
+            }
+        }
+    }
+    found.sort();
+    Ok(found
+        .into_iter()
+        .map(|f| {
+            let rel = f.strip_prefix(root).map_or_else(|_| PathBuf::from(f.file_name().unwrap_or_default()), Path::to_path_buf);
+            (f.to_string_lossy().into_owned(), out_root.join(rel).to_string_lossy().into_owned())
+        })
+        .collect())
+}
+
+/// Clean one PDF with `model`: what it is sure of is removed and the result written to `output`
+/// (a copy as it was when nothing is). Failures are in the result's `error`.
+pub fn clean_folder_file(input: &str, output: &str, model: &Model, password: Option<&str>) -> FolderFile {
+    let mut f = FolderFile { input: input.to_string(), output: output.to_string(), ..FolderFile::default() };
+    let run = || -> Result<(usize, usize), String> {
+        crate::file_access::check_write(output)?;
+        let bytes = crate::io::read_file_capped(input, MAX_PDF, "PDF")?;
+        let found = objects::scan(&bytes, password, model).map_err(|e| format!("{input}: {e}"))?;
+        let ids: Vec<String> = found.objects.iter().filter(|o| o.decision == Decision::Remove).map(|o| o.id.clone()).collect();
+        let unsure: std::collections::HashSet<&str> = found.objects.iter().filter(|o| o.decision == Decision::Review).map(|o| o.group.as_str()).collect();
+        let (pdf, removed) = if ids.is_empty() {
+            (bytes, 0)
+        } else {
+            let (pdf, done) = objects::remove(&bytes, password, &ids).map_err(|e| format!("{input}: {e}"))?;
+            (pdf, done.total())
+        };
+        if let Some(dir) = std::path::Path::new(output).parent().filter(|d| !d.as_os_str().is_empty()) {
+            std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+        }
+        crate::io::write_file(output, &pdf)?;
+        Ok((removed, unsure.len()))
+    };
+    match run() {
+        Ok((removed, unsure)) => {
+            f.removed = removed;
+            f.unsure = unsure;
+        }
+        Err(e) => f.error = e,
+    }
+    f
+}
+
+/// Clean every `(input, output)` of `jobs` with the model in `model_path` (or the starting
+/// model), a few files at once. `progress` is called as each file finishes, from a worker
+/// thread; once `cancel` is set no more files are started. Returns the files done, in `jobs`
+/// order. The file-access roots in force on the calling thread apply on the workers too.
+pub fn clean_folder_files(
+    jobs: &[(String, String)],
+    model_path: Option<&str>,
+    password: Option<&str>,
+    cancel: &std::sync::atomic::AtomicBool,
+    progress: &(dyn Fn(&FolderFile) + Sync),
+) -> Result<Vec<FolderFile>, String> {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let model = load_model(model_path)?;
+    let roots = crate::file_access::current();
+    let next = AtomicUsize::new(0);
+    let done: std::sync::Mutex<Vec<(usize, FolderFile)>> = std::sync::Mutex::new(Vec::with_capacity(jobs.len()));
+    let workers = std::thread::available_parallelism().map_or(2, usize::from).clamp(1, 4).min(jobs.len().max(1));
+    std::thread::scope(|s| {
+        for _ in 0..workers {
+            s.spawn(|| {
+                crate::file_access::confine(roots.as_ref(), || {
+                    while !cancel.load(Ordering::Relaxed) {
+                        let at = next.fetch_add(1, Ordering::Relaxed);
+                        let Some((input, output)) = jobs.get(at) else { break };
+                        let f = clean_folder_file(input, output, &model, password);
+                        progress(&f);
+                        if let Ok(mut d) = done.lock() {
+                            d.push((at, f));
+                        }
+                    }
+                });
+            });
+        }
+    });
+    let mut done = done.into_inner().unwrap_or_else(std::sync::PoisonError::into_inner);
+    done.sort_by_key(|(at, _)| *at);
+    Ok(done.into_iter().map(|(_, f)| f).collect())
+}
+
+/// `clean.folder`: clean every PDF in a folder with what the model has learned.
+fn folder(_: &mut Session, v: &Value) -> CmdResult {
+    let dir = p::req_str(v, "dir")?;
+    let out = p::str(v, "out").filter(|o| !o.is_empty()).map_or_else(|| default_folder_out(dir), str::to_string);
+    let subfolders = v.get("subfolders").and_then(Value::as_bool).unwrap_or(true);
+    let jobs = folder_jobs(dir, &out, subfolders).map_err(CmdError::Failed)?;
+    let model = p::str(v, "model");
+    let never = std::sync::atomic::AtomicBool::new(false);
+    let files = clean_folder_files(&jobs, model, p::str(v, "password"), &never, &|_| {}).map_err(CmdError::Failed)?;
+    let count = |f: &dyn Fn(&FolderFile) -> bool| files.iter().filter(|x| f(x)).count();
+    Ok(json!({
+        "dir": dir,
+        "out": out,
+        "pdfs": files.len(),
+        "cleaned": count(&|f| f.error.is_empty()),
+        "needCheck": count(&|f| f.error.is_empty() && f.unsure > 0),
+        "failed": count(&|f| !f.error.is_empty()),
+        "removed": files.iter().map(|f| f.removed).sum::<usize>(),
+        "files": files.iter().map(FolderFile::to_json).collect::<Vec<_>>(),
     }))
 }
 
