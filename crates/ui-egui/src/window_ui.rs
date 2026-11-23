@@ -75,6 +75,7 @@ impl WindowUi {
         WindowUi {
             canvas: Default::default(),
             restrict: Default::default(),
+            clean: Default::default(),
             spelling_review: None,
             status: None,
             announcement: None,
