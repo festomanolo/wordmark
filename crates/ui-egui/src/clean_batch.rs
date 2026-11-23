@@ -86,6 +86,8 @@ pub(crate) enum Action {
         input: String,
         output: String,
     },
+    /// Stop checking and show the folder's list again.
+    Back,
 }
 
 /// The words a run's notification uses, translated before the run (the worker thread has no
