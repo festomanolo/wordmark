@@ -685,8 +685,7 @@ fn group(found: &[Vec<Found>], spots: &[Vec<[f64; 4]>]) -> Groups {
             continue;
         }
         for (y, &(q, j)) in flat.iter().enumerate().skip(x + 1) {
-            let g = &found[q][j];
-            if q != p && g.obj.kind == f.obj.kind && same_spot(spots[p][i], spots[q][j]) {
+            if q != p && found[q][j].obj.kind == f.obj.kind && same_spot(spots[p][i], spots[q][j]) {
                 let (a, b) = (root(&mut parent, x), root(&mut parent, y));
                 parent[a] = b;
             }
