@@ -1950,6 +1950,7 @@ dependencies = [
  "hayro",
  "hayro-interpret",
  "hayro-syntax",
+ "js-sys",
  "krilla",
  "serde",
  "thiserror 2.0.21",
