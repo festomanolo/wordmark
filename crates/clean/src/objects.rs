@@ -1021,7 +1021,7 @@ pub fn render_page(bytes: &[u8], password: Option<&str>, page: usize, max_side: 
     use craft_pdf::raster::{self, Options, RenderCache};
     let pdf = craft_pdf::open_slice(bytes, password).map_err(|e| e.to_string())?;
     let pages = pdf.pages();
-    let p = pages.iter().nth(page).ok_or_else(|| format!("the PDF has no page {}", page + 1))?;
+    let p = pages.get(page).ok_or_else(|| format!("the PDF has no page {}", page + 1))?;
     let one = Options { background: [255, 255, 255, 255], ..Options::default() };
     let [w, h] = raster::dimensions(p, &one).map_err(|e| e.to_string())?;
     let side = w.max(h).max(1) as f32;
