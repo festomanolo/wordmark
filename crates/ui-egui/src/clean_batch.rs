@@ -219,7 +219,7 @@ fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
             return None;
         }
         Some(total) => {
-            Progress::new(done as f32 / total as f32).label(tl!("Cleaning PDFs")).show(ui);
+            Progress::new(done as f32 / total as f32).label(tl!("Cleaning PDFs")).sizing(Sizing::FillWidth).show(ui);
             let line = if s.finished && s.stopped {
                 crate::i18n::fmt(tl!("Stopped: {done} of {total} PDFs done."), &[("done", &done.to_string()), ("total", &total.to_string())])
             } else if s.finished {
