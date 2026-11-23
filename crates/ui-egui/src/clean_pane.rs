@@ -362,8 +362,10 @@ fn page_preview(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     let side = ((ui.available_width() * ppp * (pw.max(ph) / pw) / PREVIEW_STEP).ceil() * PREVIEW_STEP).clamp(PREVIEW_STEP, PREVIEW_MAX) as u32;
     let path = st.path.clone();
     let mut failed = None;
-    let texture = TextureCache::texture(ui.ctx(), ("clean-preview", path.clone(), st.serial, page, side), || {
-        match wordcraft_engine::cmd::clean::page_preview(&path, None, page, side) {
+    let texture =
+        TextureCache::texture(ui.ctx(), ("clean-preview", path.clone(), st.serial, page, side), || match wordcraft_engine::cmd::clean::page_preview(
+            &path, None, page, side,
+        ) {
             Ok(pic) => egui::ColorImage::from_rgba_premultiplied([pic.width as usize, pic.height as usize], &pic.rgba),
             Err(e) => {
                 failed = Some(e);
