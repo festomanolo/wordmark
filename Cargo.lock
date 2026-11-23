@@ -3654,7 +3654,7 @@ dependencies = [
  "png 0.18.1",
  "skrifa 0.44.0",
  "smallvec",
- "vello_common",
+ "vello_common 0.2.0",
 ]
 
 [[package]]
