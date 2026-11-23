@@ -40,7 +40,7 @@ without asking, even when its logo is a different picture file.
 
 **Or clean a whole folder:** **Choose Folder…** picks a folder of PDFs, and **Start Cleaning**
 cleans every PDF in it (and in its subfolders, unless that is unticked) with what has been
-learned, into a folder beside it named `<folder>-clean`, keeping the subfolders
+learned. Each clean copy is saved next to its PDF, wherever it is in the folder tree, named
 (**Change Output Folder…** picks another; the originals are never written over). A bar shows how
 far it has got, and **Stop** stops it after the files under way. What the detector is sure of is
 removed; a file with things it is not sure of is written with them kept and listed with a
