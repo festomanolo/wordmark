@@ -110,21 +110,77 @@ impl CleanPane {
     fn take_scan(&mut self, r: &Value) {
         self.pages = r["pages"].as_u64().unwrap_or(0);
         self.needs_ocr = r["needsOcr"].as_array().map(|a| a.iter().filter_map(Value::as_u64).collect()).unwrap_or_default();
+        self.page_sizes = r["pageSizes"]
+            .as_array()
+            .map(|a| a.iter().map(|s| [s[0].as_f64().unwrap_or(1.0) as f32, s[1].as_f64().unwrap_or(1.0) as f32]).collect())
+            .unwrap_or_default();
         self.candidates = r["candidates"]
             .as_array()
             .map(|a| {
                 a.iter()
                     .map(|c| Candidate {
                         text: c["text"].as_str().unwrap_or_default().to_string(),
-                        pages: c["pages"].as_array().map(|p| p.iter().filter_map(Value::as_u64).collect()).unwrap_or_default(),
-                        score: c["score"].as_f64().unwrap_or(0.0),
                         decision: c["decision"].as_str().unwrap_or("keep").to_string(),
                     })
                     .collect()
             })
             .unwrap_or_default();
-        self.picked = self.candidates.iter().map(|c| c.decision == "remove").collect();
+        self.groups = groups(r["objects"].as_array().map(Vec::as_slice).unwrap_or_default());
+        self.picked = self.groups.iter().map(|g| g.decision == "remove").collect();
+        self.view_page = self.groups.iter().zip(&self.picked).find(|(_, on)| **on).and_then(|(g, _)| g.pages.first()).map_or(0, |p| p.saturating_sub(1) as usize);
+        self.serial = self.serial.wrapping_add(1);
     }
+}
+
+/// The objects worth a row, grouped. Body text the model keeps and the page's own picture (the
+/// scan) are left out: ticking them would empty the page.
+fn groups(objects: &[Value]) -> Vec<Group> {
+    let mut out: Vec<Group> = Vec::new();
+    let mut at: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for o in objects {
+        let kind = o["kind"].as_str().unwrap_or_default();
+        let decision = o["decision"].as_str().unwrap_or("keep");
+        let page_picture = o["reasons"].as_array().is_some_and(|r| r.iter().any(|x| x.as_str() == Some("page picture")));
+        let invisible = o["reasons"].as_array().is_some_and(|r| r.iter().any(|x| x.as_str().is_some_and(|s| s.starts_with("invisible"))));
+        if page_picture || invisible || (kind == "text" && decision == "keep") {
+            continue;
+        }
+        let (Some(id), Some(page)) = (o["id"].as_str(), o["page"].as_u64()) else { continue };
+        let b = &o["bbox"];
+        let bbox = [0, 1, 2, 3].map(|i| b[i].as_f64().unwrap_or(0.0) as f32);
+        let group = o["group"].as_str().unwrap_or(id).to_string();
+        let score = o["score"].as_f64().unwrap_or(0.0);
+        let g = match at.get(&group) {
+            Some(&i) => &mut out[i],
+            None => {
+                at.insert(group, out.len());
+                out.push(Group {
+                    ids: Vec::new(),
+                    kind: kind.to_string(),
+                    text: o["text"].as_str().unwrap_or_default().to_string(),
+                    pages: Vec::new(),
+                    boxes: Vec::new(),
+                    score,
+                    decision: decision.to_string(),
+                });
+                out.last_mut().expect("just pushed")
+            }
+        };
+        g.ids.push(id.to_string());
+        if !g.pages.contains(&page) {
+            g.pages.push(page);
+        }
+        g.boxes.push((page, bbox));
+        if score > g.score {
+            g.score = score;
+            g.decision = decision.to_string();
+        }
+    }
+    for g in &mut out {
+        g.pages.sort_unstable();
+    }
+    out.sort_by(|a, b| b.score.total_cmp(&a.score).then(b.pages.len().cmp(&a.pages.len())));
+    out
 }
 
 /// The model file, where the app keeps it (`None` on the web: nothing is learned there).
