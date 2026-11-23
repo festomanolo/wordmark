@@ -31,16 +31,33 @@ use crate::WordApp;
 const CHECK: ColumnKey = ColumnKey::new("watermark");
 /// The list's text column.
 const TEXT: ColumnKey = ColumnKey::new("text");
-/// Candidate rows shown before the list scrolls (the pane scrolls too, so the list is capped).
-const ROWS_SHOWN: u16 = 12;
+/// Rows shown before the list scrolls (the pane scrolls too, so the list is capped).
+const ROWS_SHOWN: u16 = 10;
+/// The preview's longest side is rendered in steps of this many pixels, so a pane resized by a
+/// pixel doesn't draw the page again.
+const PREVIEW_STEP: f32 = 200.0;
+const PREVIEW_MAX: f32 = 1800.0;
 
 /// What to do with web addresses, with their `clean.*` names.
 const URL_MODES: [(&str, &str); 3] = [("remove", "Remove them"), ("unlink", "Keep the text, remove the link"), ("keep", "Keep them")];
 
-/// One text found in the PDF.
+/// One text found by the text reader (for the editable document).
 #[derive(Clone, Debug)]
 pub(crate) struct Candidate {
     pub text: String,
+    /// `remove`, `review` or `keep`: what the model would do.
+    pub decision: String,
+}
+
+/// Things that are the same on different pages (a footer on every page), listed as one row.
+#[derive(Clone, Debug)]
+pub(crate) struct Group {
+    /// The object ids (`clean.scan` `objects[].id`), one per page it is on.
+    pub ids: Vec<String>,
+    /// `image`, `graphic`, `text`, `link` or `stamp`.
+    pub kind: String,
+    pub text: String,
+    /// 1-based pages, ascending.
     pub pages: Vec<u64>,
     pub score: f64,
     /// `remove`, `review` or `keep`: what the model would do.
