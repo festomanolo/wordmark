@@ -1,6 +1,3 @@
-            o.text,
-            o.keys,
-            o.reasons
         );
     }
     if let Some(out) = args.get(2) {
