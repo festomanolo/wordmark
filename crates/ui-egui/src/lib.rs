@@ -64,7 +64,6 @@ pub mod print_page;
 pub mod printing;
 pub mod proofing_pane;
 pub mod read_aloud;
-mod clean_pane;
 mod restrict_pane;
 pub mod ribbon;
 mod save_types;
