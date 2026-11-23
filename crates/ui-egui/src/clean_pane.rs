@@ -682,7 +682,9 @@ pub(crate) fn set_folder(app: &mut WordApp, folder: &str, out: Option<&str>, sta
 /// The folder section, and what its buttons ask for.
 fn batch_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     use crate::clean_batch::Action;
-    match crate::clean_batch::section(ui, &mut st.batch) {
+    let action =
+        if st.save_target.is_some() { crate::clean_batch::checking(ui, &st.batch, &st.path) } else { crate::clean_batch::section(ui, &mut st.batch) };
+    match action {
         Action::None => {}
         Action::ChooseFolder => {
             app.clean = std::mem::take(st);
