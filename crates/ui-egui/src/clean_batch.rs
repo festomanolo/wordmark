@@ -50,8 +50,6 @@ pub(crate) struct Batch {
 
 impl Default for Batch {
     fn default() -> Self {
-            run: None,
-            cancel: Arc::new(AtomicBool::new(false)),
             checked: Vec::new(),
         }
     }
