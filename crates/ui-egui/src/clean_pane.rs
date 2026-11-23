@@ -2,8 +2,9 @@
 //! (a logo pasted over a scan, a scanner app's footer, link areas, stamps), tick what to remove,
 //! and save the PDF without it: everything else on each page stays as it was. What is ticked
 //! teaches the model, so the next PDF from the same source is marked without asking. The PDF can
-//! also be opened rebuilt as an editable document, and the open document cleaned. Every action
-//! runs a `clean.*` command ([`wordcraft_engine::cmd::clean`]).
+//! also be opened rebuilt as an editable document, and the open document cleaned. A whole folder
+//! of PDFs can be cleaned too ([`crate::clean_batch`]). Every action runs a `clean.*` command
+//! ([`wordcraft_engine::cmd::clean`]) or the work behind one.
 
 use craft::behavior::{ColumnKey, ColumnWidth, EditEvent, Input, Metrics, Sense, keyed};
 use craft::theme::variant::Tone;
