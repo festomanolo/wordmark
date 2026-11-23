@@ -148,7 +148,7 @@ fn a_saved_pdf_loses_what_was_picked_and_keeps_what_was_kept() {
 }
 
 #[test]
-fn a_folder_is_cleaned_into_a_folder_beside_it_with_its_subfolders_and_the_originals_kept() {
+fn each_pdf_in_a_folder_tree_gets_its_clean_copy_beside_it_and_a_second_run_leaves_the_copies_alone() {
     let base = scratch("folder");
     let dir = base.join("papers");
     std::fs::create_dir_all(dir.join("term 2")).unwrap();
@@ -160,9 +160,7 @@ fn a_folder_is_cleaned_into_a_folder_beside_it_with_its_subfolders_and_the_origi
 
     let r = s.run("clean.folder", &json!({"dir": dir_s})).unwrap();
     assert_eq!((r["pdfs"].as_u64(), r["failed"].as_u64()), (Some(2), Some(0)), "{r:#}");
-    let out = std::path::PathBuf::from(r["out"].as_str().unwrap());
-    assert_ne!(out, dir, "the copies don't overwrite the originals");
-    for written in [out.join("a.pdf"), out.join("term 2").join("b.PDF")] {
+    for written in [dir.join("a-clean.pdf"), dir.join("term 2").join("b-clean.PDF")] {
         let scan = s.run("clean.scan", &json!({"path": written.to_string_lossy()})).unwrap();
         assert!(object_ids(&scan, "DRAFT COPY").is_empty(), "{} still has the stamp", written.display());
         assert_eq!(object_ids(&scan, "Page ").len(), 3, "the body text stays");
@@ -170,5 +168,8 @@ fn a_folder_is_cleaned_into_a_folder_beside_it_with_its_subfolders_and_the_origi
     let original = s.run("clean.scan", &json!({"path": a})).unwrap();
     assert_eq!(object_ids(&original, "DRAFT COPY").len(), 3, "the original is untouched");
 
-    assert!(s.run("clean.folder", &json!({"dir": dir_s, "out": dir_s})).is_err(), "writing over the originals is refused");
+    // The copies are not cleaned again into -clean-clean files.
+    let again = s.run("clean.folder", &json!({"dir": dir_s})).unwrap();
+    assert_eq!(again["pdfs"].as_u64(), Some(2), "{again:#}");
+    assert!(!dir.join("a-clean-clean.pdf").exists());
 }

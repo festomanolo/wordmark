@@ -300,7 +300,7 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
                 &[("name", &file_name(&target))],
             ))
             .show(ui);
-            if Button::new(tl!("Save to Clean Folder")).show(ui).clicked() {
+            if Button::new(tl!("Save Clean Copy")).show(ui).clicked() {
                 app.clean = std::mem::take(st);
                 save_to(app, target);
                 *st = std::mem::take(&mut app.clean);

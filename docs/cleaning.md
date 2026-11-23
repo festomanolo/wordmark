@@ -40,11 +40,12 @@ without asking, even when its logo is a different picture file.
 
 **Or clean a whole folder:** **Choose Folder…** picks a folder of PDFs, and **Start Cleaning**
 cleans every PDF in it (and in its subfolders, unless that is unticked) with what has been
-learned, into a folder beside it named `<folder>-clean`, keeping the subfolders
-(**Change Output Folder…** picks another; the originals are never written over). A bar shows how
+learned. Each clean copy is saved next to its PDF, wherever it is in the folder tree, named
+`<name>-clean.pdf` (the originals are never written over, and a later run skips the `-clean`
+copies). A bar shows how
 far it has got, and **Stop** stops it after the files under way. What the detector is sure of is
 removed; a file with things it is not sure of is written with them kept and listed with a
-**Check** button, which opens it in the pane with its pages marked, and **Save to Clean Folder**
+**Check** button, which opens it in the pane with its pages marked, and **Save Clean Copy**
 writes its clean copy again with your picks (which are learned, so **Clean Again** gets further).
 When the run ends a notification with a sound says how many files need a check, and the Dock
 icon bounces (macOS: Notification Centre; Linux and the BSDs: `notify-send`; Windows and the web
@@ -63,12 +64,12 @@ Agents get the same results through the commands the pane runs:
 | `clean.scan {path}` | lists the PDF's texts (`candidates`) and the objects drawn on its pages (`objects`: `id`, `page`, `kind`, `bbox`, `text`, `group`, `score`, `decision`, `reasons`), with `pageSizes` |
 | `clean.learn {path, model, watermarks?, content?, watermarkObjects?, contentObjects?}` | teaches the model texts and objects (by id) and saves it |
 | `clean.savePdf {path, out, remove?, keep?}` | writes the PDF without what the model removes, plus the `remove` ids, less the `keep` ids |
-| `clean.folder {dir, out?, subfolders?}` | cleans every PDF in `dir` into `out` (default `<dir>-clean` beside it); each of `files` has `removed`, `unsure` (kept for a person to check) and `error` |
+| `clean.folder {dir, subfolders?}` | cleans every PDF in `dir` into `<name>-clean.pdf` beside it; each of `files` has `removed`, `unsure` (kept for a person to check) and `error` |
 | `clean.openPdf {path, model?, watermarks?, content?, urls?, dropFlagged?}` | opens the PDF rebuilt without its watermarks |
 | `clean.document {model?, urls?}` | cleans the open document |
 
 `ui.dialog {"name": "removeWatermarks", "path": "file.pdf"}` opens the pane already scanning a
-PDF; `{"name": "removeWatermarks", "folder": "dir", "out"?: "dir", "start"?: true}` sets the
+PDF; `{"name": "removeWatermarks", "folder": "dir", "start"?: true}` sets the
 folder to clean (and starts it). Confined automation (`--automation-read-root`/`--automation-write-root`) reaches only files
 inside its roots.
 
