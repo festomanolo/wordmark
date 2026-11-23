@@ -277,6 +277,7 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
         return;
     }
     if std::mem::take(&mut st.show_pages) {
+        ui.scroll_to_cursor(Some(egui::Align::TOP));
     }
     Section::fixed(tl!("2. Check the pages")).show(ui, |ui, _| {
         page_nav(ui, st);
