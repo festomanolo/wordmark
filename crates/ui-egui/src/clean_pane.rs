@@ -667,7 +667,6 @@ pub(crate) fn set_folder(app: &mut WordApp, folder: &str, start: bool) {
         b.checked.clear();
     }
     b.dir = folder.to_string();
-    b.out = out.unwrap_or_default().to_string();
     // Without a window yet there is nothing to show the run in: it waits for Start Cleaning.
     if start
         && !b.running()
