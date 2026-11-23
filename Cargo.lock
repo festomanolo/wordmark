@@ -9452,7 +9452,7 @@ dependencies = [
  "craft-metafile",
  "image",
  "log",
- "vello_cpu",
+ "vello_cpu 0.2.0",
  "wordcraft-doc",
  "wordcraft-fonts",
  "wordcraft-geom",
