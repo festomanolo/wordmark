@@ -658,6 +658,35 @@ pub(crate) fn save_to(app: &mut WordApp, out: String) {
     app.clean = st;
 }
 
+/// The folder section, and what its buttons ask for.
+fn batch_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
+    use crate::clean_batch::Action;
+    match crate::clean_batch::section(ui, &mut st.batch) {
+        Action::None => {}
+        Action::ChooseFolder => {
+            app.clean = std::mem::take(st);
+            app.pick_clean_folder(false);
+            *st = std::mem::take(&mut app.clean);
+        }
+        Action::ChooseOut => {
+            app.clean = std::mem::take(st);
+            app.pick_clean_folder(true);
+            *st = std::mem::take(&mut app.clean);
+        }
+        Action::Start => {
+            // Saved picks are what the run knows: a model not written yet is the starting one.
+            let model = model_path(app).filter(|m| std::path::Path::new(m).exists());
+            crate::clean_batch::start(ui.ctx(), &mut st.batch, model);
+        }
+        Action::Check { input, output } => {
+            app.clean = std::mem::take(st);
+            scan(app, input);
+            *st = std::mem::take(&mut app.clean);
+            st.save_target = Some(output);
+        }
+    }
+}
+
 /// Keep the picks (where a model is kept), then open the PDF rebuilt without the watermarks.
 /// The ticked texts also go with the call (the ones the text reader found too), so they apply
 /// even where nothing is kept.
