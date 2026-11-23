@@ -136,3 +136,8 @@ fn a_picture_marked_once_is_recognised_where_it_sits_in_the_next_file_from_that_
 fn a_mark_in_the_same_spot_on_every_page_gets_one_verdict_though_only_some_pages_draw_it_over_the_scan() {
     let mark = "q 130 0 0 20 232 800 cm /Stamp Do Q";
     let pdf = scanned_with(&[("", mark), (mark, ""), ("", mark)]);
+    let s = scan(&pdf, None, &Model::default()).unwrap();
+    let marks: Vec<&PageObject> = s.objects.iter().filter(|o| o.kind == Kind::Image && o.bbox[3] < 60.0).collect();
+    assert_eq!(marks.len(), 3, "{marks:#?}");
+    assert!(marks.iter().all(|m| m.decision == Decision::Remove), "{marks:#?}");
+}
