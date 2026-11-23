@@ -1,6 +1,7 @@
 //! Watermark and web-address removal (`wordcraft-clean`): find what looks like a watermark in a
-//! PDF, learn from what a person picks, open the PDF rebuilt without it, and clean the open
-//! document. The Remove Watermarks pane and agents both go through these commands.
+//! PDF (pictures, text, links and stamps drawn over its pages), learn from what a person picks,
+//! save the PDF without it (the rest of each page kept as it was) or open it rebuilt as an
+//! editable document, and clean the open document. The Remove Watermarks pane and agents both go through these commands.
 //!
 //! The learned model is a JSON file named by `model`; without it the built-in starting model
 //! is used and nothing is learned. Every file is read through [`crate::file_access`], so
@@ -8,7 +9,7 @@
 
 use serde_json::{Value, json};
 use wordcraft_clean::detect::{Decision, normalize};
-use wordcraft_clean::{FileReport, Model, PageText, RebuildOptions, UrlAction};
+use wordcraft_clean::{FileReport, Model, PageText, RebuildOptions, UrlAction, objects};
 
 use super::sel_result;
 use crate::{CmdError, CmdResult, CommandSpec, Session, p};
@@ -27,7 +28,10 @@ pub(crate) fn specs() -> Vec<CommandSpec> {
             .params(r#"{"path": string (a PDF), "password"?: string, "model"?: string (learned model file), "limit"?: number (candidates listed, default 30)}"#)
             .pure(),
         CommandSpec::new("clean.learn", "Learn Watermarks", "Design › Watermark › Remove Watermarks", learn)
-            .params(r#"{"path": string (the PDF the texts come from), "model": string (model file, written), "watermarks": [string] (texts that are watermarks), "content"?: [string] (texts that are not), "password"?: string, "limit"?: number (candidates the person was shown; unmarked ones train as content)}"#)
+            .params(r#"{"path": string (the PDF the texts come from), "model": string (model file, written), "watermarks"?: [string] (texts that are watermarks), "content"?: [string] (texts that are not), "watermarkObjects"?: [string] (object ids from clean.scan that are watermarks), "contentObjects"?: [string] (object ids that are not), "password"?: string, "limit"?: number (candidates the person was shown; unmarked ones train as content)}"#)
+            .pure(),
+        CommandSpec::new("clean.savePdf", "Save PDF Without Watermarks", "Design › Watermark › Remove Watermarks", save_pdf)
+            .params(r#"{"path": string (a PDF), "out": string (the PDF written), "password"?: string, "model"?: string, "remove"?: [string] (object ids from clean.scan to remove as well), "keep"?: [string] (object ids to keep although the model would remove them)}"#)
             .pure(),
         CommandSpec::new("clean.openPdf", "Open PDF Without Watermarks", "Design › Watermark › Remove Watermarks", open_pdf)
             .params(r#"{"path": string (a PDF), "password"?: string, "model"?: string, "urls"?: "remove|unlink|keep" (default remove), "dropFlagged"?: bool (also drop text it is unsure of), "pageBreaks"?: bool (default true), "watermarks"?: [string], "content"?: [string], "limit"?: number (as clean.learn, for this call only)}"#)
