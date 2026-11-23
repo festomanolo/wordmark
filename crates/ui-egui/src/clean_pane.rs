@@ -10,7 +10,7 @@ use craft::theme::variant::Tone;
 use craft::ui::buttons::Button;
 use craft::ui::choice::Checkbox;
 use craft::ui::contract::{
-    Bind, CollectionEvent, ColumnSpec, Common, Component, Cx, Entry, MeasureCx, PaintUi, Props as _, Role, SelectMode, Show as _,
+    Bind, CollectionEvent, ColumnSpec, Common, Component, Cx, Entry, MeasureCx, PaintUi, Props, Role, SelectMode, Show as _, ShowCollection as _,
     ShowCollection as _, ShowContainer as _, Sizing, SpaceAction, ToggleColumn,
 };
 use craft::ui::display::Text;
