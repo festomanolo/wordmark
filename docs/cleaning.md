@@ -37,6 +37,18 @@ format `--model` takes. Pictures are remembered by their pixels and by where the
 page, links by their site, text by what it reads, so the next PDF from the same source is marked
 without asking, even when its logo is a different picture file.
 
+**Or clean a whole folder:** **Choose Folder…** picks a folder of PDFs, and **Start Cleaning**
+cleans every PDF in it (and in its subfolders, unless that is unticked) with what has been
+learned, into a folder beside it named `<folder>-clean`, keeping the subfolders
+(**Change Output Folder…** picks another; the originals are never written over). A bar shows how
+far it has got, and **Stop** stops it after the files under way. What the detector is sure of is
+removed; a file with things it is not sure of is written with them kept and listed with a
+**Check** button, which opens it in the pane with its pages marked, and **Save to Clean Folder**
+writes its clean copy again with your picks (which are learned, so **Clean Again** gets further).
+When the run ends a notification with a sound says how many files need a check, and the Dock
+icon bounces (macOS: Notification Centre; Linux and the BSDs: `notify-send`; Windows and the web
+app only flash the window). Cleaning a folder needs the desktop app.
+
 **Open as Editable Document** instead rebuilds the PDF's text as paragraphs, without the ticked
 text, with web addresses removed, unlinked or kept as chosen. Pictures are not carried over, so a
 scanned PDF comes out empty: save a clean PDF for those. **Clean This Document** cleans the
