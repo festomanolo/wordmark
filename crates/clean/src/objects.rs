@@ -691,6 +691,7 @@ fn group(found: &[Vec<Found>], spots: &[Vec<[f64; 4]>]) -> Groups {
             }
         }
     }
+    let roots: Vec<usize> = (0..flat.len()).map(|n| root(&mut parent, n)).collect();
     let mut members: HashMap<usize, Vec<usize>> = HashMap::new();
     let mut group_first: HashMap<usize, String> = HashMap::new();
     for (n, &(p, i)) in flat.iter().enumerate() {
