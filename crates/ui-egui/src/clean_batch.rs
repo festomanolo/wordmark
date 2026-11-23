@@ -205,6 +205,10 @@ pub(crate) fn section(ui: &mut Ui, b: &mut Batch) -> Action {
 /// The files the run left to check, `(input, output)`, by name.
 fn to_check(b: &Batch) -> Vec<(String, String)> {
     let Some(s) = b.run.as_ref().and_then(|r| r.lock().ok()) else { return Vec::new() };
+    let mut v: Vec<(String, String)> =
+        s.files.iter().filter(|f| f.error.is_empty() && f.unsure > 0).map(|f| (f.input.clone(), f.output.clone())).collect();
+    v.sort();
+    v
 /// How far the run has got, and what it left for a person.
 fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
     let run = b.run.as_ref()?;
