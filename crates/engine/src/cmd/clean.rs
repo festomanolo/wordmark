@@ -122,7 +122,82 @@ fn scan(_: &mut Session, v: &Value) -> CmdResult {
         "incompletePages": pages_where(&pages, |p| p.failed || p.truncated),
         "unreadablePages": objects.unreadable,
         "candidates": candidates,
+        "objects": objects.objects.iter().map(object_json).collect::<Vec<_>>(),
     }))
+}
+
+/// The bytes of the PDF `v` names (`path`).
+fn pdf_bytes(v: &Value) -> Result<Vec<u8>, CmdError> {
+    let path = p::req_str(v, "path")?;
+    let bytes = crate::io::read_file_capped(path, MAX_PDF, "PDF").map_err(CmdError::Failed)?;
+    if !bytes.starts_with(b"%PDF") && !bytes.windows(5).take(1024).any(|w| w == b"%PDF-") {
+        return Err(CmdError::Failed(format!("{path} is not a PDF")));
+    }
+    Ok(bytes)
+}
+
+/// The pictures, text, links and stamps drawn on the pages of the PDF `v` names.
+fn scan_objects(v: &Value, model: &Model) -> Result<objects::Scan, CmdError> {
+    let path = p::req_str(v, "path")?;
+    objects::scan(&pdf_bytes(v)?, p::str(v, "password"), model).map_err(|e| CmdError::Failed(format!("{path}: {e}")))
+}
+
+fn object_json(o: &objects::PageObject) -> Value {
+    json!({
+        "id": o.id,
+        "page": o.page,
+        "kind": o.kind.name(),
+        "bbox": o.bbox,
+        "text": o.text,
+        "pixels": o.pixels,
+        "group": o.group,
+        "score": o.score,
+        "decision": decision_name(o.decision),
+        "reasons": o.reasons,
+    })
+}
+
+/// Write the PDF without its watermark objects: what the model would remove, plus `remove`,
+/// less `keep`. Everything else on each page stays as it was.
+fn save_pdf(_: &mut Session, v: &Value) -> CmdResult {
+    let out = p::req_str(v, "out")?.to_string();
+    crate::file_access::check_write(&out).map_err(CmdError::Failed)?;
+    let model = model(v)?;
+    let bytes = pdf_bytes(v)?;
+    let path = p::req_str(v, "path")?;
+    let password = p::str(v, "password");
+    let found = objects::scan(&bytes, password, &model).map_err(|e| CmdError::Failed(format!("{path}: {e}")))?;
+    let extra = texts(v, "remove")?;
+    let keep = texts(v, "keep")?;
+    let mut ids: Vec<String> = found.objects.iter().filter(|o| o.decision == Decision::Remove).map(|o| o.id.clone()).collect();
+    ids.extend(extra);
+    ids.retain(|id| !keep.contains(id));
+    ids.sort();
+    ids.dedup();
+    let (pdf, done) = objects::remove(&bytes, password, &ids).map_err(|e| CmdError::Failed(format!("{path}: {e}")))?;
+    crate::io::write_file(&out, &pdf).map_err(CmdError::Failed)?;
+    Ok(json!({
+        "from": path,
+        "out": out,
+        "removed": done.total(),
+        "images": done.images,
+        "graphics": done.graphics,
+        "texts": done.texts,
+        "links": done.links,
+        "stamps": done.stamps,
+        "notFound": done.not_found,
+    }))
+}
+
+/// The largest preview side (pixels).
+const MAX_PREVIEW_SIDE: u32 = 2400;
+
+/// Page `page` (0-based) of the PDF at `path`, drawn for the Remove Watermarks pane. Not a
+/// command (it changes nothing and its result is pixels); automation reads boxes from
+/// `clean.scan`. The file is read through [`crate::file_access`] like the commands' files.
+pub fn page_preview(path: &str, password: Option<&str>, page: usize, max_side: u32) -> Result<objects::PagePicture, String> {
+    let bytes = crate::io::read_file_capped(path, MAX_PDF, "PDF")?;
+    objects::render_page(&bytes, password, page, max_side.min(MAX_PREVIEW_SIDE)).map_err(|e| format!("{path}: {e}"))
 }
 
 /// Teach `model` the texts of `pages` that `v` names (`watermarks`, `content`); the other texts
@@ -162,13 +237,25 @@ fn teach(model: &mut Model, pages: &[PageText], v: &Value) -> Result<(usize, Vec
 /// Teach the model which of the PDF's texts are watermarks, and save it.
 fn learn(_: &mut Session, v: &Value) -> CmdResult {
     let model_path = p::req_str(v, "model")?.to_string();
-    if texts(v, "watermarks")?.is_empty() && texts(v, "content")?.is_empty() {
-        return Err(CmdError::Params("name at least one text in `watermarks` or `content`".into()));
+    let (marked_objects, kept_objects) = (texts(v, "watermarkObjects")?, texts(v, "contentObjects")?);
+    let some_texts = !(texts(v, "watermarks")?.is_empty() && texts(v, "content")?.is_empty());
+    if !some_texts && marked_objects.is_empty() && kept_objects.is_empty() {
+        return Err(CmdError::Params("name at least one text in `watermarks` or `content`, or an object in `watermarkObjects` or `contentObjects`".into()));
     }
     crate::file_access::check_write(&model_path).map_err(CmdError::Failed)?;
     let mut model = model(v)?;
-    let (_, pages) = read_pdf(v)?;
-    let (learned, missing) = teach(&mut model, &pages, v)?;
+    let (mut learned, mut missing) = (0, Vec::new());
+    if some_texts {
+        let (_, pages) = read_pdf(v)?;
+        (learned, missing) = teach(&mut model, &pages, v)?;
+    }
+    if !marked_objects.is_empty() || !kept_objects.is_empty() {
+        // Keys are read from the file as the model saw it before this lesson.
+        let found = scan_objects(v, &model)?;
+        let known: std::collections::HashSet<&str> = found.objects.iter().map(|o| o.id.as_str()).collect();
+        missing.extend(marked_objects.iter().chain(&kept_objects).filter(|id| !known.contains(id.as_str())).cloned());
+        learned += model.learn_objects(&objects::keys_of(&found, &marked_objects), &objects::keys_of(&found, &kept_objects));
+    }
     crate::io::write_file(&model_path, model.to_json().as_bytes()).map_err(CmdError::Failed)?;
     Ok(json!({"learned": learned, "examples": model.examples.len(), "model": model_path, "notFound": missing}))
 }
