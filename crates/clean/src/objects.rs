@@ -694,12 +694,20 @@ fn score(found: &mut [Vec<Found>], sizes: &[[f32; 2]], model: &Model) {
             }
         }
     }
-    let mut group_pages: HashMap<usize, HashSet<usize>> = HashMap::new();
+    let mut members: HashMap<usize, Vec<usize>> = HashMap::new();
     let mut group_first: HashMap<usize, String> = HashMap::new();
     for (n, &(p, i)) in flat.iter().enumerate() {
         let r = root(&mut parent, n);
-        group_pages.entry(r).or_default().insert(p);
+        members.entry(r).or_default().push(n);
         group_first.entry(r).or_insert_with(|| found[p][i].obj.id.clone());
+    }
+    // On how many pages the same thing sits in the same spot (a footer, a corner logo): the same
+    // line elsewhere on another page is not a repeat.
+    let mut repeat_pages: Vec<usize> = vec![1; flat.len()];
+    for (n, &(p, i)) in flat.iter().enumerate() {
+        let r = root(&mut parent, n);
+        let pages: HashSet<usize> = members[&r].iter().map(|&m| flat[m]).filter(|&(q, j)| q == p || same_spot(spots[p][i], spots[q][j])).map(|(q, _)| q).collect();
+        repeat_pages[n] = pages.len();
     }
 
     for (n, &(p, i)) in flat.iter().enumerate() {
