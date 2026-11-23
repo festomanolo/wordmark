@@ -64,6 +64,8 @@ fn route(app: &mut WordApp, name: &str, params: &Value, parent: Option<DialogId>
             if let Some(path) = params.get("path").and_then(Value::as_str) {
                 crate::clean_pane::scan(app, path.to_string());
             }
+            if let Some(folder) = params.get("folder").and_then(Value::as_str) {
+            }
             None
         }
         "fontDownload" => crate::font_download::open(app, name, params, parent),
