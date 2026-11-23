@@ -525,7 +525,10 @@ fn read_page(doc: &Document, page: &PageRef, index: usize) -> Result<(Vec<Found>
         let (kind, text, uri, internal) = match d.name(b"Subtype") {
             Some(b"Link") => {
                 let action = d.get(b"A").and_then(|o| doc.dict(o));
-                let uri = action.as_ref().filter(|a| a.name(b"S") == Some(b"URI")).and_then(|a| doc.resolve(a.get(b"URI")?).as_string().map(|s| s.to_text()));
+                let uri = action
+                    .as_ref()
+                    .filter(|a| a.name(b"S") == Some(b"URI"))
+                    .and_then(|a| doc.resolve(a.get(b"URI")?).as_string().map(|s| s.to_text()));
                 let internal = uri.is_none() && (d.contains(b"Dest") || action.is_some_and(|a| matches!(a.name(b"S"), Some(b"GoTo" | b"Named"))));
                 (Kind::Link, uri.clone().unwrap_or_default(), uri, internal)
             }
