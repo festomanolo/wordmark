@@ -65,6 +65,8 @@ fn route(app: &mut WordApp, name: &str, params: &Value, parent: Option<DialogId>
                 crate::clean_pane::scan(app, path.to_string());
             }
             if let Some(folder) = params.get("folder").and_then(Value::as_str) {
+                crate::clean_pane::set_folder(
+                    app,
             }
             None
         }
