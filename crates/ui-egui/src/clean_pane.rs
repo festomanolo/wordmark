@@ -668,6 +668,9 @@ pub(crate) fn set_folder(app: &mut WordApp, folder: &str, out: Option<&str>, sta
         b.run = None;
         b.checked.clear();
     }
+    b.dir = folder.to_string();
+    b.out = out.unwrap_or_default().to_string();
+    // Without a window yet there is nothing to show the run in: it waits for Start Cleaning.
 /// The folder section, and what its buttons ask for.
 fn batch_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     use crate::clean_batch::Action;
