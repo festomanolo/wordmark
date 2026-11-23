@@ -26,7 +26,7 @@ fn scanned_with(pages: &[(&str, &str)]) -> Vec<u8> {
         format!("<< /Type /Pages /Kids [{}] /Count {n} >>", (0..n).map(|i| format!("{} 0 R", 4 + 4 * i)).collect::<Vec<_>>().join(" ")),
         "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".into(),
     ];
-    for (i, extra) in pages.iter().enumerate() {
+    for (i, (before, extra)) in pages.iter().enumerate() {
         let o = 4 + 4 * i;
         objs.push(format!(
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents {} 0 R /Resources << /Font << /F1 3 0 R >> /XObject << /Scan {} 0 R /Stamp {} 0 R >> >> \
