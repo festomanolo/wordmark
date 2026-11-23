@@ -18,16 +18,18 @@ use craft::ui::layout_components::Row;
 use craft::ui::list::{List, ListRow, ToggleCell, ToggleState};
 use craft::ui::notices::Notice;
 use craft::ui::pickers::Select;
+use craft::ui::primitives::{PaintShape, StrokeWidth, TextureCache};
 use craft::ui::runtime::env::Label;
 use craft::ui::sections::Section;
-use egui::Ui;
+use craft::ui::style::{ComponentStyle, StyleColor, StyleCx};
+use egui::{CornerRadius, Pos2, Rect, Ui};
 use serde_json::{Value, json};
 
 use crate::WordApp;
 
-/// The candidate list's check column.
+/// The list's check column.
 const CHECK: ColumnKey = ColumnKey::new("watermark");
-/// The candidate list's text column.
+/// The list's text column.
 const TEXT: ColumnKey = ColumnKey::new("text");
 /// Candidate rows shown before the list scrolls (the pane scrolls too, so the list is capped).
 const ROWS_SHOWN: u16 = 12;
