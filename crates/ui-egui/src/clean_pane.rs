@@ -269,6 +269,7 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             Text::new(crate::i18n::fmt(tl!("{name}, {pages} pages"), &[("name", &file_name(&st.path)), ("pages", &st.pages.to_string())])).show(ui);
         }
     });
+    batch_section(app, ui, st);
     if st.path.is_empty() || st.page_sizes.is_empty() {
         return;
     }
