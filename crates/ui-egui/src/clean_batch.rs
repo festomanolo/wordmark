@@ -266,6 +266,11 @@ fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
     action
 }
 
+/// A folder's name with its parent's ("past-papers/term 2"), for a narrow pane.
+fn short(dir: &str) -> String {
+    let p = std::path::Path::new(dir);
+    let name = |p: &std::path::Path| p.file_name().map(|n| n.to_string_lossy().into_owned());
+    match (p.parent().and_then(name), name(p)) {
 /// `path` relative to `dir`, for a short row.
 fn relative(dir: &str, path: &str) -> String {
     std::path::Path::new(path).strip_prefix(dir).map_or_else(|_| path.to_string(), |p| p.to_string_lossy().into_owned())
