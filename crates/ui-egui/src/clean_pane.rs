@@ -93,6 +93,13 @@ pub(crate) struct CleanPane {
     /// The last result, and whether it was a failure.
     pub message: String,
     pub failed: bool,
+    /// Cleaning a whole folder.
+    pub batch: crate::clean_batch::Batch,
+    /// The folder copy this PDF's clean copy goes to, when it was opened from a folder run to
+    /// be checked.
+    pub save_target: Option<String>,
+    /// What Clean This Document did, shown under its button.
+    pub doc_message: String,
 }
 
 impl CleanPane {
