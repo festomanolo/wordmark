@@ -182,9 +182,10 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             let pages = st.needs_ocr.iter().map(u64::to_string).collect::<Vec<_>>().join(", ");
             Notice::new(
                 Tone::Bad,
-                crate::i18n::fmt(tl!("Pages {pages} are scanned pictures with no text: run OCR on the PDF first, or they come out empty."), &[(
-                    "pages", &pages,
-                )]),
+                crate::i18n::fmt(
+                    tl!("Pages {pages} are scanned pictures with no text: run OCR on the PDF first, or they come out empty."),
+                    &[("pages", &pages)],
+                ),
             )
             .show(ui);
         }
