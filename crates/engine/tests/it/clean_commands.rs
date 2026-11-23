@@ -148,7 +148,7 @@ fn a_saved_pdf_loses_what_was_picked_and_keeps_what_was_kept() {
 }
 
 #[test]
-fn a_folder_is_cleaned_into_a_folder_beside_it_with_its_subfolders_and_the_originals_kept() {
+fn each_pdf_in_a_folder_tree_gets_its_clean_copy_beside_it_and_a_second_run_leaves_the_copies_alone() {
     let base = scratch("folder");
     let dir = base.join("papers");
     std::fs::create_dir_all(dir.join("term 2")).unwrap();
