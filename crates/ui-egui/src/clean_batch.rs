@@ -209,6 +209,10 @@ fn to_check(b: &Batch) -> Vec<(String, String)> {
         s.files.iter().filter(|f| f.error.is_empty() && f.unsure > 0).map(|f| (f.input.clone(), f.output.clone())).collect();
     v.sort();
     v
+}
+
+/// The section while `input`, a file of the run, is open to be checked: one line instead of the
+/// list, so the file's pages come right after it.
 /// How far the run has got, and what it left for a person.
 fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
     let run = b.run.as_ref()?;
