@@ -729,9 +729,14 @@ fn open_cleaned(app: &mut WordApp, st: &mut CleanPane) {
 }
 
 fn document_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
-    Section::fixed(tl!("This document")).show(ui, |ui, _| {
-        Text::new(tl!("Remove its watermark, the watermark texts the detector has learned, and its links and web addresses.")).show(ui);
-        if Button::new(tl!("Clean This Document")).show(ui).clicked() {
+    let name = app.document_title();
+    Section::fixed(tl!("The document in the editor")).show(ui, |ui, _| {
+        Text::new(crate::i18n::fmt(
+            tl!("Cleans {name}, the document open in the editor, not a PDF: its watermark, the watermark texts the detector has learned, and its links and web addresses. Undo puts them back."),
+            &[("name", &name)],
+        ))
+        .show(ui);
+        if Button::new(crate::i18n::fmt(tl!("Clean {name}"), &[("name", &name)])).show(ui).clicked() {
             let mut p = json!({"urls": st.urls()});
             if let Some(m) = model_path(app).filter(|m| std::path::Path::new(m).exists()) {
                 p["model"] = json!(m);
