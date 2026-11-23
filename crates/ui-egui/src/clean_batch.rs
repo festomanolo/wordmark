@@ -181,8 +181,9 @@ pub(crate) fn section(ui: &mut Ui, b: &mut Batch) -> Action {
         if b.dir.is_empty() {
             return;
         }
-        Text::new(crate::i18n::fmt(tl!("From: {dir}"), &[("dir", &b.dir)])).show(ui);
-        Text::new(crate::i18n::fmt(tl!("To: {dir}"), &[("dir", &b.out_dir())])).show(ui);
+        // The folder's own name and its parent's: a whole path is cut off in a narrow pane.
+        Text::new(crate::i18n::fmt(tl!("From: {dir}"), &[("dir", &short(&b.dir))])).show(ui);
+        Text::new(crate::i18n::fmt(tl!("To: {dir}"), &[("dir", &short(&b.out_dir()))])).show(ui);
         Checkbox::new(Bind::bound(&mut b.subfolders)).label(tl!("Include subfolders")).enabled(!running).show(ui);
         Checkbox::new(Bind::bound(&mut b.notify)).label(tl!("Notify me with a sound when it's done")).show(ui);
         if running {
