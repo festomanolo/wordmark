@@ -320,10 +320,10 @@ fn open_cleaned(app: &mut WordApp, st: &mut CleanPane) {
             let removed = r["removed"].as_u64().unwrap_or(0);
             let urls = r["urlsRemoved"].as_u64().unwrap_or(0);
             let unsure = r["flagged"].as_array().map_or(0, Vec::len);
-            let mut msg = crate::i18n::fmt(tl!("Opened without {removed} watermark texts and {urls} web addresses."), &[
-                ("removed", &removed.to_string()),
-                ("urls", &urls.to_string()),
-            ]);
+            let mut msg = crate::i18n::fmt(
+                tl!("Opened. Watermark texts removed: {removed}. Web addresses removed: {urls}."),
+                &[("removed", &removed.to_string()), ("urls", &urls.to_string())],
+            );
             if unsure > 0 && !st.drop_unsure {
                 msg.push(' ');
                 msg.push_str(&crate::i18n::fmt(tl!("{n} unsure texts were kept."), &[("n", &unsure.to_string())]));
