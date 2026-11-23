@@ -64,7 +64,7 @@ Agents get the same results through the commands the pane runs:
 | `clean.scan {path}` | lists the PDF's texts (`candidates`) and the objects drawn on its pages (`objects`: `id`, `page`, `kind`, `bbox`, `text`, `group`, `score`, `decision`, `reasons`), with `pageSizes` |
 | `clean.learn {path, model, watermarks?, content?, watermarkObjects?, contentObjects?}` | teaches the model texts and objects (by id) and saves it |
 | `clean.savePdf {path, out, remove?, keep?}` | writes the PDF without what the model removes, plus the `remove` ids, less the `keep` ids |
-| `clean.folder {dir, out?, subfolders?}` | cleans every PDF in `dir` into `out` (default `<dir>-clean` beside it); each of `files` has `removed`, `unsure` (kept for a person to check) and `error` |
+| `clean.folder {dir, subfolders?}` | cleans every PDF in `dir` into `<name>-clean.pdf` beside it; each of `files` has `removed`, `unsure` (kept for a person to check) and `error` |
 | `clean.openPdf {path, model?, watermarks?, content?, urls?, dropFlagged?}` | opens the PDF rebuilt without its watermarks |
 | `clean.document {model?, urls?}` | cleans the open document |
 
