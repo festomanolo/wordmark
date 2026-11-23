@@ -258,6 +258,26 @@ pub fn folder_jobs(dir: &str, out: &str, subfolders: bool) -> Result<Vec<(String
         let entries = std::fs::read_dir(&d).map_err(|e| format!("{}: {e}", d.display()))?;
         for e in entries.flatten() {
             let name = e.file_name().to_string_lossy().into_owned();
+            if name.starts_with('.') {
+                continue;
+            }
+            let Ok(kind) = e.file_type() else { continue };
+            let path = e.path();
+            if kind.is_dir() {
+                if subfolders && depth < MAX_FOLDER_DEPTH {
+                    todo.push((path, depth + 1));
+                }
+            } else if Path::new(&name).extension().is_some_and(|x| x.eq_ignore_ascii_case("pdf")) && (kind.is_file() || path.is_file()) {
+                found.push(path);
+                if found.len() > MAX_FOLDER_FILES {
+                    return Err(format!("{dir} has more than {MAX_FOLDER_FILES} PDFs: clean it a part at a time"));
+                }
+            }
+        }
+    }
+    found.sort();
+    Ok(found
+        .into_iter()
 /// The largest preview side (pixels).
 const MAX_PREVIEW_SIDE: u32 = 2400;
 
