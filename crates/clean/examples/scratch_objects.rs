@@ -1,6 +1,3 @@
-        for o in &again.objects {
-            println!("after {:6} {:7} {:>4.0}% {:?}", o.id, o.kind.name(), o.score * 100.0, o.text);
-        }
         for p in 0..again.pages.len() {
             let pic = wordcraft_clean::objects::render_page(&pdf, None, p, 900).unwrap();
             println!("page {} rendered {}x{}", p + 1, pic.width, pic.height);
