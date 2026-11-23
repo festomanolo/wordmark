@@ -59,12 +59,14 @@ fn model(v: &Value) -> Result<Model, CmdError> {
 
 /// The pages of the PDF `v` names (`path`, `password`).
 fn read_pdf(v: &Value) -> Result<(String, Vec<PageText>), CmdError> {
+    let bytes = pdf_bytes(v)?;
+    text_pages(v, &bytes)
+}
+
+/// The text pages of `bytes`, the PDF `v` names.
+fn text_pages(v: &Value, bytes: &[u8]) -> Result<(String, Vec<PageText>), CmdError> {
     let path = p::req_str(v, "path")?;
-    let bytes = crate::io::read_file_capped(path, MAX_PDF, "PDF").map_err(CmdError::Failed)?;
-    if !bytes.starts_with(b"%PDF") && !bytes.windows(5).take(1024).any(|w| w == b"%PDF-") {
-        return Err(CmdError::Failed(format!("{path} is not a PDF")));
-    }
-    let pages = wordcraft_clean::extract_pdf(&bytes, p::str(v, "password")).map_err(|e| CmdError::Failed(format!("{path}: {e}")))?;
+    let pages = wordcraft_clean::extract_pdf(bytes, p::str(v, "password")).map_err(|e| CmdError::Failed(format!("{path}: {e}")))?;
     Ok((path.to_string(), pages))
 }
 
@@ -106,7 +108,8 @@ fn texts(v: &Value, key: &str) -> Result<Vec<String>, CmdError> {
 /// The PDF's distinct texts, most watermark-like first, with what the model would do to each.
 fn scan(_: &mut Session, v: &Value) -> CmdResult {
     let model = model(v)?;
-    let (path, pages) = read_pdf(v)?;
+    let bytes = pdf_bytes(v)?;
+    let (path, pages) = text_pages(v, &bytes)?;
     let found = wordcraft_clean::candidates(&pages, &model, limit(v));
     let candidates: Vec<Value> =
         found.iter().map(|c| json!({"text": c.text, "pages": c.pages, "score": c.score, "decision": decision_name(model.decide(c.score))})).collect();
