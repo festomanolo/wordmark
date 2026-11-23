@@ -158,7 +158,7 @@ fn groups(objects: &[Value]) -> Vec<Group> {
                 pages: Vec::new(),
                 boxes: Vec::new(),
                 score,
-                    score,
+                decision: decision.to_string(),
                     decision: decision.to_string(),
                 });
                 out.last_mut().expect("just pushed")
