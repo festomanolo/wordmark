@@ -82,9 +82,9 @@ pub struct PageObject {
     pub text: String,
     /// A picture's size in pixels.
     pub pixels: Option<[u32; 2]>,
-    /// What is learned when a person marks it: the same for the look-alikes on other pages and in
-    /// other files from the same source.
-    pub key: String,
+    /// What is learned when a person marks it (what it reads, links to or holds, and where it
+    /// sits): the same for the look-alikes on other pages and in other files from the same source.
+    pub keys: Vec<String>,
     /// Objects that are the same thing on different pages share a group (the first one's id).
     pub group: String,
     pub score: f32,
@@ -563,7 +563,7 @@ fn object(id: String, index: usize, kind: Kind, bbox: [f32; 4], text: String) ->
         bbox,
         text,
         pixels: None,
-        key: String::new(),
+        keys: Vec::new(),
         group: String::new(),
         score: 0.0,
         decision: Decision::Keep,
