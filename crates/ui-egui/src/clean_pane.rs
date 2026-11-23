@@ -310,7 +310,10 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
             let pages = st.needs_ocr.iter().map(u64::to_string).collect::<Vec<_>>().join(", ");
             Notice::new(
                 Tone::Warn,
-                crate::i18n::fmt(tl!("Pages {pages} are scanned pictures with no text: they come out empty. Save a clean PDF instead."), &[("pages", &pages)]),
+                crate::i18n::fmt(
+                    tl!("Pages {pages} are scanned pictures with no text: they come out empty. Save a clean PDF instead."),
+                    &[("pages", &pages)],
+                ),
             )
             .show(ui);
         }
