@@ -21,6 +21,7 @@
 pub mod detect;
 pub mod doc_clean;
 pub mod extract;
+pub mod objects;
 pub mod pipeline;
 pub mod rebuild;
 pub mod urls;
