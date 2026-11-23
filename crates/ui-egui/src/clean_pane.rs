@@ -150,22 +150,19 @@ fn groups(objects: &[Value]) -> Vec<Group> {
         let bbox = [0, 1, 2, 3].map(|i| b[i].as_f64().unwrap_or(0.0) as f32);
         let group = o["group"].as_str().unwrap_or(id).to_string();
         let score = o["score"].as_f64().unwrap_or(0.0);
-        let g = match at.get(&group) {
-            Some(&i) => &mut out[i],
-            None => {
-                at.insert(group, out.len());
-                out.push(Group {
-                    ids: Vec::new(),
-                    kind: kind.to_string(),
-                    text: o["text"].as_str().unwrap_or_default().to_string(),
-                    pages: Vec::new(),
-                    boxes: Vec::new(),
-                    score,
-                    decision: decision.to_string(),
-                });
-                out.last_mut().expect("just pushed")
-            }
-        };
+        let at = *at.entry(group).or_insert_with(|| {
+            out.push(Group {
+                ids: Vec::new(),
+                kind: kind.to_string(),
+                text: o["text"].as_str().unwrap_or_default().to_string(),
+                pages: Vec::new(),
+                boxes: Vec::new(),
+                score,
+                decision: decision.to_string(),
+            });
+            out.len() - 1
+        });
+        let Some(g) = out.get_mut(at) else { continue };
         g.ids.push(id.to_string());
         if !g.pages.contains(&page) {
             g.pages.push(page);
