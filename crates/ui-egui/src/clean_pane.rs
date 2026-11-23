@@ -45,8 +45,6 @@ const URL_MODES: [(&str, &str); 3] = [("remove", "Remove them"), ("unlink", "Kee
 #[derive(Clone, Debug)]
 pub(crate) struct Candidate {
     pub text: String,
-    /// `remove`, `review` or `keep`: what the model would do.
-    pub decision: String,
 }
 
 /// Things that are the same on different pages (a footer on every page), listed as one row.
