@@ -544,10 +544,20 @@ fn row_label(g: &Group, sizes: &[[f32; 2]]) -> String {
     let verdict = match g.decision.as_str() {
         "remove" => tl!("watermark"),
         "review" => tl!("not sure"),
-        _ => tl!("content"),
+        _ => tl!("kept"),
     };
-    let text: String = c.text.chars().take(80).collect();
-    format!("{:.0}% {verdict} · {text} · {pages}", c.score * 100.0)
+    let where_ = g.boxes.first().map(|(p, b)| place(*b, sizes.get(p.saturating_sub(1) as usize).copied().unwrap_or([1.0, 1.0]))).unwrap_or_default();
+    let text: String = g.text.chars().take(60).collect();
+    let what = match g.kind.as_str() {
+        "image" => crate::i18n::fmt(tl!("Picture, {place}"), &[("place", &where_)]),
+        "graphic" => crate::i18n::fmt(tl!("Graphic, {place}"), &[("place", &where_)]),
+        "link" if text.is_empty() => crate::i18n::fmt(tl!("Link area, {place}"), &[("place", &where_)]),
+        "link" => crate::i18n::fmt(tl!("Link to {url}"), &[("url", &text)]),
+        "stamp" => crate::i18n::fmt(tl!("Stamp \"{text}\""), &[("text", &text)]),
+        _ if text.is_empty() => crate::i18n::fmt(tl!("Text, {place}"), &[("place", &where_)]),
+        _ => format!("\u{201c}{text}\u{201d}"),
+    };
+    format!("{:.0}% {verdict} · {what} · {pages}", g.score * 100.0)
 }
 
 fn url_choice(ui: &mut Ui, st: &mut CleanPane) {
@@ -563,11 +573,13 @@ fn url_choice(ui: &mut Ui, st: &mut CleanPane) {
 /// Teach the model the picks and keep it; `false` when it failed (said in the pane).
 fn learn(app: &mut WordApp, st: &mut CleanPane) -> bool {
     let Some(model) = model_path(app) else { return false };
-    let mut p = base_params(app, st);
-    picks(st, &mut p);
-    if p["watermarks"].as_array().is_some_and(Vec::is_empty) && p["content"].as_array().is_some_and(Vec::is_empty) {
+    let (remove, keep) = picked_ids(st);
+    if remove.is_empty() && keep.is_empty() {
         return true;
     }
+    let mut p = base_params(app, st);
+    p["watermarkObjects"] = json!(remove);
+    p["contentObjects"] = json!(keep);
     p["model"] = json!(model);
     match app.run("clean.learn", p) {
         Ok(r) => {
