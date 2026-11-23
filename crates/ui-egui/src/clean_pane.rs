@@ -296,6 +296,18 @@ fn pdf_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     Section::fixed(tl!("4. Save")).show(ui, |ui, _| {
         Text::new(tl!("A new PDF without the ticked items. The rest of each page stays exactly as it was.")).show(ui);
         let learnable = model_path(app).is_some();
+        if let Some(target) = st.save_target.clone() {
+            Text::new(crate::i18n::fmt(
+                tl!("Opened from the folder run: saving writes its clean copy, {name}, again."),
+                &[("name", &file_name(&target))],
+            ))
+            .show(ui);
+            if Button::new(tl!("Save to Clean Folder")).show(ui).clicked() {
+                app.clean = std::mem::take(st);
+                save_to(app, target);
+                *st = std::mem::take(&mut app.clean);
+            }
+        }
         Row::new().show(ui, |ui, _| {
             if Button::new(tl!("Save Clean PDF…")).show(ui).clicked() {
                 app.clean = std::mem::take(st);
