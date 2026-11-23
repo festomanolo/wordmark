@@ -663,6 +663,8 @@ pub(crate) fn save_to(app: &mut WordApp, out: String) {
 pub(crate) fn set_folder(app: &mut WordApp, folder: &str, out: Option<&str>, start: bool) {
     let ctx = app.ctx.clone();
     let model = model_path(app).filter(|m| std::path::Path::new(m).exists());
+    let b = &mut app.clean.batch;
+    if b.dir != folder {
 /// The folder section, and what its buttons ask for.
 fn batch_section(app: &mut WordApp, ui: &mut Ui, st: &mut CleanPane) {
     use crate::clean_batch::Action;
