@@ -65,12 +65,7 @@ fn route(app: &mut WordApp, name: &str, params: &Value, parent: Option<DialogId>
                 crate::clean_pane::scan(app, path.to_string());
             }
             if let Some(folder) = params.get("folder").and_then(Value::as_str) {
-                crate::clean_pane::set_folder(
-                    app,
-                    folder,
-                    params.get("out").and_then(Value::as_str),
-                    params.get("start").and_then(Value::as_bool) == Some(true),
-                );
+                crate::clean_pane::set_folder(app, folder, params.get("start").and_then(Value::as_bool) == Some(true));
             }
             None
         }
