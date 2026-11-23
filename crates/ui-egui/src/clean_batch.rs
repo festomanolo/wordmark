@@ -224,6 +224,10 @@ pub(crate) fn checking(ui: &mut Ui, b: &Batch, input: &str) -> Action {
             let at = files.iter().position(|(i, _)| i == input);
             let next = files.iter().cycle().skip(at.map_or(0, |a| a + 1)).take(files.len()).find(|(i, _)| i != input && !b.checked.contains(i));
             if Button::new(tl!("Next File")).enabled(next.is_some()).show(ui).clicked()
+                && let Some((i, o)) = next
+            {
+                action = Action::Check { input: i.clone(), output: o.clone() };
+            }
 /// How far the run has got, and what it left for a person.
 fn progress(ui: &mut Ui, b: &Batch) -> Option<Action> {
     let run = b.run.as_ref()?;
