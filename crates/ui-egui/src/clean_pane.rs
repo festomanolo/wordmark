@@ -648,6 +648,9 @@ pub(crate) fn save_to(app: &mut WordApp, out: String) {
                 );
                 app.status(msg.clone());
                 st.say(msg, false);
+                if st.save_target.as_deref() == Some(out.as_str()) && !st.batch.checked.contains(&st.path) {
+                    st.batch.checked.push(st.path.clone());
+                }
             }
             Err(e) => st.say(e, true),
         }
